@@ -22,43 +22,47 @@ def main():
         message = message.decode()
         print(f'Received message: {message} from {client}')
 
-        if len(message) == 0:
-            server_socket.sendto(ACK_EMPTY.encode(), client)
-            continue
+        handle_message(message, client)
 
-        if not message.startswith('/'):
-            server_socket.sendto(NACK_INVALID.encode(), client)
-            continue
 
-        # Workaround to always split the message in two parts
-        if ' ' not in message:
-            message += ' '
-        prefix, message = message.split(' ', 1)
+def handle_message(message: str, client: Address):
+    if len(message) == 0:
+        server_socket.sendto(ACK_EMPTY.encode(), client)
+        return
 
-        # If message starts with '/REG' add the client to the list of clients
-        if prefix == PREFIX_REG:
-            register(nickname=message)
-            server_socket.sendto(ACK_REG.encode(), client)
-        
-        # If message starts with '/MSG' send a message to all clients
-        elif prefix == PREFIX_MSG:
-            send_message(message, sender=client)
-            server_socket.sendto(ACK_MSG.encode(), client)
-            continue
+    if not message.startswith('/'):
+        server_socket.sendto(NACK_INVALID.encode(), client)
+        return
 
-        # If message starts with '/FILE' send a file to all clients
-        elif prefix == PREFIX_FILE:
-            send_file(message)
-            server_socket.sendto(ACK_FILE.encode(), client)
+    # Workaround to always split the message in two parts
+    if ' ' not in message:
+        message += ' '
+    prefix, message = message.split(' ', 1)
 
-        # If message starts with '/QUIT' remove the client from the list of clients
-        elif prefix == PREFIX_QUIT:
-            unregister(address=client)
-            server_socket.sendto(ACK_UNREG.encode(), client)
+    # If message starts with '/REG' add the client to the list of clients
+    if prefix == PREFIX_REG:
+        register(nickname=message)
+        server_socket.sendto(ACK_REG.encode(), client)
+    
+    # If message starts with '/MSG' send a message to all clients
+    elif prefix == PREFIX_MSG:
+        send_message(message, sender=client)
+        server_socket.sendto(ACK_MSG.encode(), client)
+        return
 
-        else:
-            print('Invalid message')
-            server_socket.sendto(NACK_INVALID.encode(), client)
+    # If message starts with '/FILE' send a file to all clients
+    elif prefix == PREFIX_FILE:
+        send_file(message)
+        server_socket.sendto(ACK_FILE.encode(), client)
+
+    # If message starts with '/QUIT' remove the client from the list of clients
+    elif prefix == PREFIX_QUIT:
+        unregister(address=client)
+        server_socket.sendto(ACK_UNREG.encode(), client)
+
+    else:
+        print('Invalid message')
+        server_socket.sendto(NACK_INVALID.encode(), client)
 
 
 def register(nickname: str, address: Address):
