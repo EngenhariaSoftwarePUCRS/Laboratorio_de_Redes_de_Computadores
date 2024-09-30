@@ -7,7 +7,7 @@ from config import (
     ACK_EMPTY, ACK_FILE, ACK_MSG, ACK_REFRESH, ACK_REG, ACK_UNREG,
     NACK_INVALID,
     MAX_SERVER_CONNECTIONS, MESSAGE_MAX_SIZE_TCP,
-    PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REFRESH, PREFIX_REG,
+    PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REFRESH, PREFIX_REG, PREFIX_WHOAMI,
     Address, server_tcp,
 )
 
@@ -86,6 +86,13 @@ def handle_message(message: str, client_socket: socket, client_address: Address)
     if prefix == PREFIX_REG:
         client_socket.send(ACK_REG.encode())
         register(nickname=message.strip(), address=client_address)
+    
+    # If message starts with '/WHOAMI' return the client's nickname, host and port
+    elif prefix == PREFIX_WHOAMI:
+        for client in clients:
+            _nickname, address = client
+            if address == client_address:
+                client_socket.send(str(client).encode())
     
     # If message starts with '/MSG' send a message to all clients
     elif prefix == PREFIX_MSG:

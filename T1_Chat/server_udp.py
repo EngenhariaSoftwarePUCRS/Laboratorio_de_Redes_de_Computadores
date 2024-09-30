@@ -5,7 +5,7 @@ from config import (
     ACK_EMPTY, ACK_FILE, ACK_MSG, ACK_REG, ACK_UNREG,
     MESSAGE_MAX_SIZE_UDP,
     NACK_INVALID,
-    PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REG,
+    PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REG, PREFIX_WHOAMI,
     Address, server_udp,
 )
 
@@ -43,6 +43,14 @@ def handle_message(message: str, client: Address):
     if prefix == PREFIX_REG:
         register(nickname=message, address=client)
         server_socket.sendto(ACK_REG.encode(), client)
+    
+    # If message starts with '/WHOAMI' return the client's nickname, host and port
+    elif prefix == PREFIX_WHOAMI:
+        for client_db in clients:
+            _nickname, address = client_db
+            if address == client:
+                server_socket.sendto(str(client_db).encode(), client)
+        return
     
     # If message starts with '/MSG' send a message to all clients
     elif prefix == PREFIX_MSG:

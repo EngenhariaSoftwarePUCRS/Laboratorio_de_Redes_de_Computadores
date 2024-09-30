@@ -1,6 +1,6 @@
 from typing import Literal
 
-from config import PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REFRESH, PREFIX_REG
+from config import ACK_FILE, ACK_MSG, ACK_REG, PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REFRESH, PREFIX_REG, PREFIX_WHOAMI
 
 
 color_mapper = {
@@ -25,6 +25,10 @@ def print_reg(*args, **kwargs):
     print_('blue', *args, **kwargs)
 
 
+def print_whoami(*args, **kwargs):
+    print_('magenta', *args, **kwargs)
+
+
 def print_msg(*args, **kwargs):
     print_('green', *args, **kwargs)
 
@@ -44,20 +48,21 @@ def print_(color: Literal['black', 'red', 'green', 'yellow', 'blue', 'magenta', 
 
 
 def get_print(message: str) -> callable:
-    if message.startswith(PREFIX_REG):
+    if message.startswith(PREFIX_REG) or message.startswith(ACK_REG):
         return print_reg
-    if message.startswith(PREFIX_MSG):
+    if message.startswith(PREFIX_MSG) or message.startswith(ACK_MSG):
         return print_msg
-    if message.startswith(PREFIX_FILE):
+    if message.startswith(PREFIX_FILE) or message.startswith(ACK_FILE):
         return print_file
     if message.startswith(PREFIX_QUIT):
         return print_quit
     return print
 
-    
+
 def print_options():
     print("Options:")
     print_reg(f"{PREFIX_REG} <nickname>: Register with the server")
+    print_whoami(f"{PREFIX_WHOAMI}: Get your nickname")
     print_msg(f"{PREFIX_MSG} <message>: Send a message to all clients")
     print_msg(f"{PREFIX_MSG} @<nickname> <message>: Send a private message to a client")
     print_("white", f"{PREFIX_REFRESH}: Refresh to check for new messages")
