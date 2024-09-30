@@ -57,6 +57,7 @@ def send_file(message: str):
         first_line = f'{PREFIX_FILE} {to}'
     else:
         first_line = PREFIX_FILE
+    client_socket.send(first_line.encode())
     
     filename = message.removeprefix(first_line).strip()
 
@@ -64,7 +65,7 @@ def send_file(message: str):
         with open(filename, 'rb') as file:
             print_file(f"Sending file {filename}")
             # Send the file name
-            client_socket.send(first_line.encode())
+            client_socket.send(filename.encode())
             # Send the file content
             while file_data := file.read(MESSAGE_MAX_SIZE_TCP):
                 client_socket.send(file_data)

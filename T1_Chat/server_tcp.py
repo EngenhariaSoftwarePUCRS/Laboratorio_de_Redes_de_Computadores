@@ -102,7 +102,11 @@ def handle_message(message: str, client_socket: socket, client_address: Address)
     # If message starts with '/FILE' send a file to all clients
     elif prefix == PREFIX_FILE:
         client_socket.send(ACK_FILE.encode())
-        send_file(message, sender=client_address)
+        filename = receive_file(client_socket, sender=client_address)
+        nickname = ""
+        if message.startswith('@'):
+            nickname = message.split(' ')[0]
+        send_file(filename, sender=client_address, target=nickname)
 
     # If message starts with '/QUIT' remove the client from the list of clients
     elif prefix == PREFIX_QUIT:
@@ -145,22 +149,44 @@ def send_message(message: str, sender: Address):
                 client_socket.send(message.encode())
 
 
-def send_file(message: str, sender: Address):
+def receive_file(client: socket, sender: Address) -> str:
+    try:
+        filename = client.recv(MESSAGE_MAX_SIZE_TCP).decode()
+        filename = f"{filename}.temp"
+        print(f'Received file: {filename} from {sender}')
+        with open(filename, 'wb') as file:
+            while (data := client.recv(MESSAGE_MAX_SIZE_TCP)) != b'EOF':
+                file.write(data)
+        print(f'File {filename} saved')
+        return filename
+
+    except Exception as e:
+        print(f'An error occurred while reading the file: {e}')
+
+
+def send_file(filename: str, sender: Address, target: str = ''):
     # Future bug: if the file name starts with '@', it will be treated as a nickname
-    if message.startswith('@'):
-        nickname = message.split(' ')[0]
-        print(f'Sending file privately to {nickname}')
-        for (nick, client_address) in clients:
-            if f"@{nick}" == nickname:
-                message = message.removeprefix(f'{nickname} ')
-                for client_socket, address in client_sockets.items():
-                    if address == client_address:
-                        client_socket.send(message.encode())
+    if target:
+        print(f'Sending file privately to {target}')
+        for (nickname, client_address) in clients:
+            if f"@{nickname}" == target:
+                with open(filename, 'rb') as file:
+                    for client_socket, address in client_sockets.items():
+                        if address == client_address:
+                            client_socket.send(filename.encode())
+                            while (file_data := file.read(MESSAGE_MAX_SIZE_TCP)):
+                                client_socket.send(file_data)
+                            client_socket.send(b'EOF')
+                            break
+                break
     else:
         for client_socket, client_address in client_sockets.items():
             if client_address != sender:
-                print(f'Sending file to {client_address}')
-                client_socket.send(message.encode())
+                with open(filename, 'rb') as file:
+                    client_socket.send(filename.encode())
+                    while (file_data := file.read(MESSAGE_MAX_SIZE_TCP)):
+                        client_socket.send(file_data)
+                    client_socket.send(b'EOF')
 
 
 if __name__ == '__main__':

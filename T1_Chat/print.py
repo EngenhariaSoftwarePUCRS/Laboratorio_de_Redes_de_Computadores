@@ -60,6 +60,7 @@ def get_print(message: str) -> callable:
 
 
 def print_options():
+    print("\n", "=" * 30)
     print("Options:")
     print_reg(f"{PREFIX_REG} <nickname>: Register with the server")
     print_whoami(f"{PREFIX_WHOAMI}: Get your nickname")
