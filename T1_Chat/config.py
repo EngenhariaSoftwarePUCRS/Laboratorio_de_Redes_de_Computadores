@@ -2,9 +2,9 @@ from typing import Tuple
 
 
 server_name = '127.0.0.1'
-server_port_udp = 12000
+server_port_udp = 13000
 server_udp = (server_name, server_port_udp)
-server_port_tcp = 13000
+server_port_tcp = 14000
 server_tcp = (server_name, server_port_tcp)
 
 ACK = 'ACK'
