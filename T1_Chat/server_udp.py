@@ -1,7 +1,13 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 
 from clients import clients
-from config import ACK_EMPTY, ACK_MSG, ACK_REG, ACK_UNREG, NACK_INVALID, server_udp
+from config import (
+    ACK_EMPTY, ACK_MSG, ACK_REG, ACK_UNREG,
+    MESSAGE_MAX_SIZE_UDP,
+    NACK_INVALID,
+    PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REG,
+    server_udp,
+)
 
 
 server_socket = socket(AF_INET, SOCK_DGRAM)
@@ -12,7 +18,7 @@ def main():
     print(f'The server is ready to receive at {server_udp}')
 
     while True:
-        message, client = server_socket.recvfrom(2048)
+        message, client = server_socket.recvfrom(MESSAGE_MAX_SIZE_UDP)
         message = message.decode()
         print(f'Received message: {message} from {client}')
 
@@ -30,14 +36,14 @@ def main():
         prefix, message = message.split(' ', 1)
 
         # If message starts with '/REG' add the client to the list of clients
-        if prefix == '/REG':
+        if prefix == PREFIX_REG:
             nickname = message
             print(f'{nickname} connected')
             clients.append((nickname, client))
             server_socket.sendto(ACK_REG.encode(), client)
         
         # If message starts with '/MSG' send a message to all clients
-        elif prefix == '/MSG':
+        elif prefix == PREFIX_MSG:
             if message.startswith('@'):
                 nickname, message = message.split(' ', 1)
                 print(f'Sending message to {nickname}')
@@ -53,8 +59,27 @@ def main():
                     server_socket.sendto(message.encode(), address)
             continue
 
+        # If message starts with '/FILE' send a file to all clients
+        elif prefix == PREFIX_FILE:
+            # Future bug: if the file name starts with '@', it will be treated as a nickname
+            if message.startswith('@'):
+                nickname = message.split(' ')[0]
+                print(f'Sending file to {nickname}')
+                for (nick, address) in clients:
+                    if f"@{nick}" == nickname:
+                        file = message.removeprefix(f'{nickname} ')
+                        server_socket.sendto(file.encode(), address)
+                        break
+                server_socket.sendto(ACK_MSG.encode(), client)
+            else:
+                for client in clients:
+                    print(f'Sending file to {client}')
+                    _nickname, address = client
+                    file = message
+                    server_socket.sendto(message.encode(), address)
+
         # If message starts with '/QUIT' remove the client from the list of clients
-        elif prefix == '/QUIT':
+        elif prefix == PREFIX_QUIT:
             # Remove the client from the list of clients
             for (nickname, address) in clients:
                 if address == client:
