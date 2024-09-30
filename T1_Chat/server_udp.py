@@ -24,27 +24,10 @@ def main():
 
         handle_message(message, client)
 
-def handle_client_udp(server_socket):
-    while True:
-        data, client_address = server_socket.recvfrom(4096)
-
-        if data.startswith(b"FILE:"):
-            filename = data[5:].decode('utf-8')
-            filesize = int(server_socket.recvfrom(1024)[0].decode('utf-8'))
-
-            with open(f"received_{filename}", "wb") as f:
-                bytes_received = 0
-                while bytes_received < filesize:
-                    file_data, addr = server_socket.recvfrom(4096)
-                    f.write(file_data)
-                    bytes_received += len(file_data)
-            
-            print(f"Arquivo {filename}recebido com sucesso de {client_address}")
-
 
 def handle_message(message: str, client: Address):
     if len(message) == 0:
-        server_socket.sendto(ACK_EMPTY.encode(), client)    
+        server_socket.sendto(ACK_EMPTY.encode(), client)
         return
 
     if not message.startswith('/'):

@@ -12,6 +12,7 @@ def main(address: Address | int):
     if isinstance(address, int):
         address = ('localhost', address)
     client_socket.bind(address)
+
     while True:
         print_options()
 
@@ -34,45 +35,6 @@ def main(address: Address | int):
         print_server = get_print(response)
         print_server(response)
 
-
-def send_file_udp(client_socket, server_address, file_path):
-    filename = os.path.basename(file_path)
-    filesize = os.path.getsize(file_path)
-
-    client_socket.sendto(f"FILE: {filename}".encode(), server_address)
-    client_socket.sendto(str(filesize).encode(), server_address)
-
-    with open(file_path, "rb") as f:
-        while(chunk := f.read(4096)):
-            client_socket.sendto(chunk, server_address)
-    
-    print(f"Arquivo {filename} enviado com sucesso.")
-
-def receive_file(client_socket):
-    while True:
-        data, server_address = client_socket.recvfrom(4096)
-
-        if data.startswith(b"FILE:"):
-            # Receive file name
-            filename = data[5:].decode('utf-8')
-            print(f"Receiving file: {filename}")
-
-        filesize, _ = client_socket.recvfrom(4096)
-        filesize = int(filesize.decode('utf-8'))
-        print(f"Tamanho do arquivo: {filesize} bytes")
-
-        with open(f"received_{filename}", "wb") as f:
-            bytes_received = 0
-            while bytes_received < filesize:
-                file_data, _ = client_socket.recvfrom(4096)
-                f.write(file_data)
-                bytes_received += len(file_data)
-        
-        print(f"File {filename} successfully received!")
-
-        with open(f"received_{filename}", "r") as f:
-            content = f.read()
-            print(content)
 
 def send_message(message: str):
     if message.startswith(PREFIX_FILE):
