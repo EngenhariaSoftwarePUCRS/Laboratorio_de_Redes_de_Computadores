@@ -1,14 +1,28 @@
 {
     "configurations": [
         {
-            "name": "Debug: Server",
+            "name": "Debug: TCP Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "T1_Chat/server_tcp.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: TCP Client",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "T1_Chat/client_tcp.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: UDP Server",
             "type": "debugpy",
             "request": "launch",
             "program": "T1_Chat/server_udp.py",
             "console": "integratedTerminal"
         },
         {
-            "name": "Debug: Client",
+            "name": "Debug: UDP Client",
             "type": "debugpy",
             "request": "launch",
             "program": "T1_Chat/client_udp.py",
