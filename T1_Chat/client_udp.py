@@ -1,16 +1,28 @@
 from socket import *
 
-serverName = '127.0.0.1'
-serverPort = 12000
+from config import server_udp
+
 
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-message = input('Input lowercase sentence: ')
 
-clientSocket.sendto(message.encode(), (serverName, serverPort))
+def main():
+    while True:
+        message = input('Input anycase sentence: ')
 
-modifiedMessage, serverAddress = clientSocket.recvfrom(2048)
+        clientSocket.sendto(message.encode(), server_udp)
+        
+        response, _ = clientSocket.recvfrom(2048)
+        response = response.decode()
 
-print(modifiedMessage.decode())
+        print(response)
 
-clientSocket.close()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Client stopped')
+    finally:
+        clientSocket.close()
+        exit(0)
