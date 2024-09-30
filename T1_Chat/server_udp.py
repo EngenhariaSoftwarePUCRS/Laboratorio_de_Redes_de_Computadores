@@ -41,7 +41,7 @@ def handle_message(message: str, client: Address):
 
     # If message starts with '/REG' add the client to the list of clients
     if prefix == PREFIX_REG:
-        register(nickname=message)
+        register(nickname=message, address=client)
         server_socket.sendto(ACK_REG.encode(), client)
     
     # If message starts with '/MSG' send a message to all clients
@@ -52,7 +52,7 @@ def handle_message(message: str, client: Address):
 
     # If message starts with '/FILE' send a file to all clients
     elif prefix == PREFIX_FILE:
-        send_file(message)
+        send_file(message, sender=client)
         server_socket.sendto(ACK_FILE.encode(), client)
 
     # If message starts with '/QUIT' remove the client from the list of clients
@@ -82,17 +82,16 @@ def unregister(address: Address):
 def send_message(message: str, sender: Address):
     if message.startswith('@'):
         nickname, message = message.split(' ', 1)
-        print(f'Sending message to {nickname}')
+        print(f'Sending private message to {nickname}')
         for (nick, address) in clients:
             if f"@{nick}" == nickname:
                 server_socket.sendto(message.encode(), address)
                 break
     else:
-        for client in clients:
-            if client == sender:
+        for (nickname, address) in clients:
+            if address == sender:
                 continue
-            print(f'Sending message to {client}')
-            _nickname, address = client
+            print(f'Sending message to {nickname}')
             server_socket.sendto(message.encode(), address)
 
 

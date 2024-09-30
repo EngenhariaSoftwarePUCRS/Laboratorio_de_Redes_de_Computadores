@@ -1,7 +1,7 @@
 from socket import socket, AF_INET, SOCK_STREAM
 
-from menu import print_options
-from config import ACK_UNREG, MESSAGE_MAX_SIZE_TCP, PREFIX_FILE, server_tcp
+from config import ACK_UNREG, MESSAGE_MAX_SIZE_TCP, PREFIX_FILE, PREFIX_QUIT, server_tcp
+from print import get_print, print_, print_file, print_options, print_quit
 
 
 client_socket = socket(AF_INET, SOCK_STREAM)
@@ -19,21 +19,23 @@ def main():
             while message.strip() == "":
                 message = input().lstrip()
 
-            if message == '/QUIT':
+            if message == PREFIX_QUIT:
                 send_message(message)
                 response = client_socket.recv(MESSAGE_MAX_SIZE_TCP).decode()
                 if response == ACK_UNREG:
-                    print("Disconnected from the server.")
+                    print_quit("Disconnected from the server.")
                     break
             else:
                 send_message(message)
 
             # Receive and print the server's response
             response = client_socket.recv(MESSAGE_MAX_SIZE_TCP)
-            print(f"Server response: {response.decode()}")
+            response = response.decode()
+            print_server = get_print(response)
+            print_server(response)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print_("red", f"An error occurred: {e}")
 
     finally:
         client_socket.close()
@@ -60,7 +62,7 @@ def send_file(message: str):
 
     try:
         with open(filename, 'rb') as file:
-            print(f"Sending file {filename}")
+            print_file(f"Sending file {filename}")
             # Send the file name
             client_socket.send(first_line.encode())
             # Send the file content
@@ -68,10 +70,10 @@ def send_file(message: str):
                 client_socket.send(file_data)
             # Send EOF to indicate the end of the file
             client_socket.send(b'EOF')
-            print(f"File {filename} sent.")
+            print_file(f"File {filename} sent.")
 
     except FileNotFoundError as e:
-        print(f"File not found: {e}")
+        print_file(f"File not found: {e}")
 
 
 if __name__ == '__main__':

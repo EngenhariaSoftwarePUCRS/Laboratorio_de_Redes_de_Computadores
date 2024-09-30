@@ -4,7 +4,7 @@ from typing import Tuple
 
 from clients import clients
 from config import (
-    ACK_EMPTY, ACK_FILE, ACK_MSG, ACK_REG, ACK_UNREG,
+    ACK_EMPTY, ACK_FILE, ACK_MSG, ACK_REFRESH, ACK_REG, ACK_UNREG,
     NACK_INVALID,
     MAX_SERVER_CONNECTIONS, MESSAGE_MAX_SIZE_TCP,
     PREFIX_FILE, PREFIX_MSG, PREFIX_QUIT, PREFIX_REFRESH, PREFIX_REG,
@@ -79,6 +79,7 @@ def handle_message(message: str, client_socket: socket, client_address: Address)
     prefix, message = message.split(' ', 1)
 
     if prefix == PREFIX_REFRESH:
+        client_socket.send(ACK_REFRESH.encode())
         return
 
     # If message starts with '/REG' add the client to the list of clients

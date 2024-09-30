@@ -11,6 +11,7 @@ ACK = 'ACK'
 ACK_EMPTY = 'ACK (empty message)'
 ACK_FILE = 'ACK (file sent)'
 ACK_MSG = 'ACK (message sent)'
+ACK_REFRESH = 'ACK (refreshed)'
 ACK_REG = 'ACK (client registered)'
 ACK_UNREG = 'ACK (client unregistered)'
 NACK = 'NACK'
@@ -20,7 +21,7 @@ NACK_NOT_FOUND = 'NACK (client not found)'
 MAX_SERVER_CONNECTIONS = 5
 
 MESSAGE_MAX_SIZE_TCP = 1024
-MESSAGE_MAX_SIZE_TCP = 1024
+MESSAGE_MAX_SIZE_UDP = 1024
 
 PREFIX_FILE = '/FILE'
 PREFIX_MSG = '/MSG'
