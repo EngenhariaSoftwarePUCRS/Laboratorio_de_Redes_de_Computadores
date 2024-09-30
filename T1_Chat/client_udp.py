@@ -1,7 +1,7 @@
 from sys import argv
 from socket import socket, AF_INET, SOCK_DGRAM
 
-from config import server_udp
+from config import ACK_UNREG, server_udp
 
 
 client_socket = socket(AF_INET, SOCK_DGRAM)
@@ -17,6 +17,9 @@ def main():
         response = response.decode()
 
         print(response)
+
+        if response == ACK_UNREG:
+            break
 
 
 if __name__ == '__main__':
@@ -36,4 +39,3 @@ if __name__ == '__main__':
         print(f'An error occurred: {e}')
     finally:
         client_socket.close()
-        exit(0)

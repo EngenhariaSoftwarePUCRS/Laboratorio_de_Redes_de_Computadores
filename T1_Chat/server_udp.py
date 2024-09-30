@@ -1,7 +1,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 
 from clients import clients
-from config import server_udp
+from config import ACK_EMPTY, ACK_MSG, ACK_REG, ACK_UNREG, NACK_INVALID, server_udp
 
 
 server_socket = socket(AF_INET, SOCK_DGRAM)
@@ -16,26 +16,56 @@ def main():
         message = message.decode()
         print(f'Received message: {message} from {client}')
 
+        if len(message) == 0:
+            server_socket.sendto(ACK_EMPTY.encode(), client)
+            continue
+
+        if not message.startswith('/'):
+            server_socket.sendto(NACK_INVALID.encode(), client)
+            continue
+
+        # Workaround to always split the message in two parts
+        if ' ' not in message:
+            message += ' '
         prefix, message = message.split(' ', 1)
 
-        # If message starts with add the client to the list of clients
+        # If message starts with '/REG' add the client to the list of clients
         if prefix == '/REG':
             nickname = message
             print(f'{nickname} connected')
             clients.append((nickname, client))
-            server_socket.sendto('ACK (client registered)'.encode(), client)
+            server_socket.sendto(ACK_REG.encode(), client)
         
-        # If message starts with send a message to all clients
+        # If message starts with '/MSG' send a message to all clients
         elif prefix == '/MSG':
-            for client in clients:
-                print(f'Sending message to {client}')
-                _nickname, address = client
-                server_socket.sendto(message.encode(), address)
+            if message.startswith('@'):
+                nickname, message = message.split(' ', 1)
+                print(f'Sending message to {nickname}')
+                for (nick, address) in clients:
+                    if f"@{nick}" == nickname:
+                        server_socket.sendto(message.encode(), address)
+                        break
+                server_socket.sendto(ACK_MSG.encode(), client)
+            else:
+                for client in clients:
+                    print(f'Sending message to {client}')
+                    _nickname, address = client
+                    server_socket.sendto(message.encode(), address)
             continue
+
+        # If message starts with '/QUIT' remove the client from the list of clients
+        elif prefix == '/QUIT':
+            # Remove the client from the list of clients
+            for (nickname, address) in clients:
+                if address == client:
+                    print(f'{nickname} disconnected')
+                    clients.remove((nickname, address))
+                    break
+            server_socket.sendto(ACK_UNREG.encode(), client)
 
         else:
             print('Invalid message')
-            server_socket.sendto('-NACK'.encode(), client)
+            server_socket.sendto(NACK_INVALID.encode(), client)
 
 
 if __name__ == '__main__':
