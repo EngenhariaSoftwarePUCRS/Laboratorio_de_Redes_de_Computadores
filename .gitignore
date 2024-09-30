@@ -1,3 +1,8 @@
+# Useful Tools
+WinDivert*
+clumsy*
+Wireshark*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
