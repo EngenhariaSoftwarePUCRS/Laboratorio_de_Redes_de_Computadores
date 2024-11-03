@@ -2,6 +2,8 @@
 WinDivert*
 clumsy*
 Wireshark*
+GNS3/*.bin
+GNS3/*.exe
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
