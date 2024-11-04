@@ -5,6 +5,8 @@
 ## Ferramentas Úteis
 
 - [Wireshark](https://www.wireshark.org/)
+- [Clumsy](https://jagt.github.io/clumsy/)
+- [GNS3](./GNS3/README.md)
 
 ### Como accessar
 
