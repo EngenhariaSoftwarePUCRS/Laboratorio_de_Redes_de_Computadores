@@ -4,6 +4,7 @@ clumsy*
 Wireshark*
 GNS3/*.bin
 GNS3/*.exe
+GNS3/**/*c3725*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
