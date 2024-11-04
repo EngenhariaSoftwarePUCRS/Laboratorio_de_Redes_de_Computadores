@@ -1,0 +1,29 @@
+en
+conf t
+int f0/1
+ip address 192.168.22.1 255.255.255.0
+no shut
+ip dhcp pool sn1
+network 192.168.22.0 255.255.255.0
+default-router 192.168.22.1
+ip dhcp excluded-address 192.168.22.1
+int f0/0
+ip address 192.168.0.1 255.255.255.0
+no shut
+router rip
+version 2
+redistribute connected
+network 192.168.0.0
+network 192.168.22.0
+network 192.168.44.0
+network 192.168.66.0
+network 192.168.88.0
+network 192.168.110.0
+network 192.168.132.0
+no passive-interface f0/0
+no passive-interface f0/1
+end
+clear ip route *
+sh ip int br
+sh ip route
+wr

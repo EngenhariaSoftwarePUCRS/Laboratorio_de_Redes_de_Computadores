@@ -1,0 +1,10 @@
+en
+conf t
+int f0/0
+ip address 21.23.22.1 255.255.255.0
+no shut
+end
+clear ip route *
+sh ip int br
+sh ip route
+wr

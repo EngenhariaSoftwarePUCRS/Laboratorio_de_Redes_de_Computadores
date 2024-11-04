@@ -1,0 +1,32 @@
+en
+conf t
+int f0/1
+ip address 192.168.0.7 255.255.255.0
+ip nat inside
+no shut
+int f0/0
+ip address 21.23.22.7 255.255.255.0
+ip nat outside
+no shut
+access-list 1 permit 192.168.0.0 0.0.255.255
+ip nat pool internet 21.23.22.8 21.23.22.15 netmask 255.255.255.0
+ip nat inside source list 1 pool internet overload
+router rip
+version 2
+redistribute connected
+network 192.168.0.0
+network 192.168.22.0
+network 192.168.44.0
+network 192.168.66.0
+network 192.168.88.0
+network 192.168.110.0
+network 192.168.132.0
+no passive-interface f0/0
+no passive-interface f0/1
+end
+clear ip route *
+sh ip int br
+sh ip route
+sh ip nat translations
+sh ip nat statistics
+wr
