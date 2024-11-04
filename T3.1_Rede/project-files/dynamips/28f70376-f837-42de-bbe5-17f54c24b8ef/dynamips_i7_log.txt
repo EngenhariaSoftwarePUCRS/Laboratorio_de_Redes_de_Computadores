@@ -1,0 +1,40 @@
+Nov 03 20:19:22.854 HYPERVISOR: Release 0.2.17-x86/Windows (tag 2017072410)
+Nov 03 20:19:22.854 HYPERVISOR: Started on IP = localhost, TCP port = 15659.
+Nov 03 20:19:23.314 HYPERVISOR: exec_cmd: hypervisor version 
+Nov 03 20:19:23.314 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\f.freitas007\GNS3\projects\t31redes\project-files\dynamips 
+Nov 03 20:19:23.314 GENERAL: working_dir=C:\Users\f.freitas007\GNS3\projects\t31redes\project-files\dynamips
+Nov 03 20:19:23.314 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\f.freitas007\GNS3\projects\t31redes\project-files\dynamips\50e799bb-7ecc-4db1-947c-0df2ce79b085 
+Nov 03 20:19:23.322 GENERAL: working_dir=C:\Users\f.freitas007\GNS3\projects\t31redes\project-files\dynamips\50e799bb-7ecc-4db1-947c-0df2ce79b085
+Nov 03 20:19:23.322 HYPERVISOR: exec_cmd: vm create R4 6 c3745 
+Nov 03 20:19:23.327 VM: VM R4 created.
+Nov 03 20:19:23.327 HYPERVISOR: exec_cmd: vm set_con_tcp_port R4 5057 
+Nov 03 20:19:23.327 HYPERVISOR: exec_cmd: c3745 get_mac_addr R4 
+Nov 03 20:19:23.327 HYPERVISOR: exec_cmd: vm set_disk0 R4 0 
+Nov 03 20:19:23.327 HYPERVISOR: exec_cmd: vm set_exec_area R4 64 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm set_ios R4 C:/Users/f.freitas007/GNS3/images/IOS/c3745-adventerprisek.124-25d.image 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: c3745 set_mac_addr R4 c406.11ac.0000 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm set_nvram R4 256 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm set_ram R4 256 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm slot_add_binding R4 1 0 NM-1FE-TX 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm slot_add_binding R4 2 0 NM-4T 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:19:23.332 HYPERVISOR: exec_cmd: vm slot_add_binding R4 0 16 WIC-1T 
+Nov 03 20:19:23.337 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:19:23.337 HYPERVISOR: exec_cmd: vm slot_add_binding R4 0 32 WIC-1T 
+Nov 03 20:19:33.294 HYPERVISOR: exec_cmd: nio create_udp udp-d014c0a8-dd11-4d7a-bd18-5afb27036346 10024 127.0.0.1 10025 
+Nov 03 20:19:34.187 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R4 0 0 udp-d014c0a8-dd11-4d7a-bd18-5afb27036346 
+Nov 03 20:19:34.187 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:19:36.902 HYPERVISOR: exec_cmd: nio create_udp udp-40a1f8ad-802b-49f0-9d25-76a5eb39f77f 10052 127.0.0.1 10053 
+Nov 03 20:19:36.912 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R4 0 1 udp-40a1f8ad-802b-49f0-9d25-76a5eb39f77f 
+Nov 03 20:19:36.912 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:20:09.935 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:20:09.937 HYPERVISOR: exec_cmd: vm extract_config R4 
+Nov 03 20:20:10.232 HYPERVISOR: exec_cmd: vm get_status R4 
+Nov 03 20:20:10.233 HYPERVISOR: exec_cmd: vm extract_config R4 
+Nov 03 20:20:10.233 HYPERVISOR: exec_cmd: vm delete R4 
+Nov 03 20:20:10.233 VM: VM R4 destroyed.
+Nov 03 20:20:10.237 HYPERVISOR: exec_cmd: hypervisor stop 
+Nov 03 20:20:10.578 HYPERVISOR: Stopped.
+Nov 03 20:20:10.578 GENERAL: reset done.
