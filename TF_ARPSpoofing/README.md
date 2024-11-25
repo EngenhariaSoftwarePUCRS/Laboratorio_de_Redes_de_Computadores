@@ -6,6 +6,7 @@
   - [More About Docker](#more-about-docker)
 - [How to Run](#how-to-run)
   - [About IPs and MAC Addresses](#about-ips-and-mac-addresses)
+  - [Next Steps](#next-steps)
   - [Step 1: Host Discovery](#step-1-host-discovery)
   - [Step 2: ARP Spoofing](#step-2-arp-spoofing)
     - [Victim 1 Container](#victim-1-container)
@@ -76,26 +77,27 @@ We have configured static IPs for the containers to make it easier to understand
 The MAC addresses also don't appear to change, but they were not set manually, so maybe this column is different for you, maybe not.
 Here is a table with the IPs and MAC addresses of the containers:
 
-| Nickname  | IP Address  | MAC Address        | Container Name             |
-|-----------|-------------|--------------------|----------------------------|
-| Gateway   | 172.0.0.254 | 02:42:d1:60:f5:29  | -                          |
-| Attacker  | 172.0.0.1   | 02:42:ac:14:00:01  | tf_arpspoofing-labredes1-1 |
-| Victim 1  | 172.0.0.2   | 02:42:ac:14:00:02  | tf_arpspoofing-labredes2-1 |
-| Victim 2  | 172.0.0.3   | 02:42:ac:14:00:03  | tf_arpspoofing-labredes3-1 |
+| Nickname  | Local Address  | IP Address  | MAC Address        | Container Name             |
+|-----------|----------------|-------------|--------------------|----------------------------|
+| Gateway   |                | 172.0.0.254 | 02:42:d1:60:f5:29  | -                          |
+| Attacker  | localhost:8080 | 172.0.0.1   | 02:42:ac:14:00:01  | tf_arpspoofing-labredes1-1 |
+| Victim 1  | localhost:8081 | 172.0.0.2   | 02:42:ac:14:00:02  | tf_arpspoofing-labredes2-1 |
+| Victim 2  | localhost:8082 | 172.0.0.3   | 02:42:ac:14:00:03  | tf_arpspoofing-labredes3-1 |
 
-To get the updated container IPs and MAC Addresses, you can run the following command on your original environment (the one you ran the `docker compose up` command):
+Optional: To get the updated container IPs and MAC Addresses, you can run the following command on your original environment (the one you ran the `docker compose up` command):
 
 ```bash
 $ scripts/get-container-ips.sh
 ```
 
+### Next Steps
 To follow the next steps, you will need to access the containers and open the LXTerminal, which should be the third icon on the tray.
 To access the application machines, simply go to:
 [Attacker Machine (localhost:8080)](localhost:8080)
-[Victim Machine (localhost:8081)](localhost:8081)
-[Gateway Machine (localhost:8082)](localhost:8082)
+[Victim Machine - Victim 1 (localhost:8081)](localhost:8081)
+[Gateway Machine - Victim 2 (localhost:8082)](localhost:8082)
 
-To check that everything appears to be working, you can run the following commands:
+To check that everything appears to be working, you can run the following commands in the containers:
 
 ```bash
 # Go to root
@@ -106,9 +108,10 @@ $ ls
 
 ### Step 1: Host Discovery
 
-To check which hosts are active in the network, you can run the following command in any of the containers:
+To check which hosts are active in the network, you can run the following commands in any of the containers:
 
 ```bash
+$ cd
 $ python3 host_discovery.py <network/mask> <timeout_ms>
 ```
 
@@ -153,6 +156,7 @@ Should return something like this:
 
 #### Attacking Container
 
+Obs.: Always check that the command line is in `:~#` instead of only `:#`.
 Start 3 terminals in the attacking container and run the following commands in each one:
 
 ```bash
