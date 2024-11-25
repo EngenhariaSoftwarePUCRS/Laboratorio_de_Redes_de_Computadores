@@ -18,6 +18,7 @@ def create_socket():
         sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
         sock.bind((interface, 0))
         return sock
+    
     except socket.error as e:
         print_error(f"Erro ao criar socket: {e}")
         sys.exit(1)
@@ -50,11 +51,8 @@ def parse_tcp_header(packet):
     tcp_header = packet[:20]
     tcph = struct.unpack('!HHLLBBHHH', tcp_header)
     
-    source_port = tcph[0]
-    dest_port = tcph[1]
-    sequence = tcph[2]
-    acknowledgement = tcph[3]
-    doff_reserved = tcph[4]
+    source_port, dest_port, sequence, _acknowledgement, doff_reserved = tcph[:5]
+    # Data offset (doff) indica o tamanho do cabeçalho TCP em palavras de 32 bits
     tcph_length = doff_reserved >> 4
     
     return source_port, dest_port, packet[tcph_length*4:]
@@ -65,23 +63,21 @@ def parse_udp_header(packet):
     udp_header = packet[:udph_length]
     udph = struct.unpack('!HHHH', udp_header)
     
-    source_port = udph[0]
-    dest_port = udph[1]
+    source_port, dest_port = udph[:2]
     
     return source_port, dest_port, packet[udph_length:]
 
 
 def parse_dns_packet(data):
     try:
-        # Parsing simplificado do cabeçalho DNS
+        # Simplified DNS header
         dns_header = struct.unpack('!HHHHHH', data[:12])
-        qcount = dns_header[2]
+        query_count = dns_header[2]
         
-        # Pular cabeçalho
+        # Skip DNS header
         offset = 12
         
-        # Processar queries
-        for _ in range(qcount):
+        for _ in range(query_count):
             qname = []
             while True:
                 length = data[offset]
@@ -98,26 +94,37 @@ def parse_dns_packet(data):
         return None
 
 
-def parse_http_request(data):
+def parse_http_request(data) -> tuple[str | None, str | None]:
+    """
+    Parse HTTP request and return the URL path
+
+    :param data: HTTP data
+    :return: Host and URL path
+    """
+    host: str | None = None
+    path: str | None = None
+
     try:
-        # Decodificar dados HTTP
         http_data = data.decode('utf-8')
-        
-        # Procurar por requisições GET ou POST
         lines = http_data.split('\n')
+
+        http_rest_protocols = ['GET', 'POST']
         for line in lines:
-            if line.startswith('GET') or line.startswith('POST'):
-                # Extrair URL
-                parts = line.split()
-                if len(parts) > 1:
-                    return parts[1]
-        return None
+            if any(line.startswith(protocol) for protocol in http_rest_protocols):
+                _protocol, url_path, _http_version = line.split(' ')
+                path = url_path
+            if line.startswith('Host:'):
+                host = line.split(' ')[1]
+        
     except:
-        return None
+        pass
+
+    return host, path
 
 
 def save_history(start_time: str):
-    with open(output_file, 'a') as f:
+    print_("green", f"Salvando historico em {output_file}")
+    with open(output_file, 'w') as f:
         f.write('<html>\n')
         f.write('<header>\n')
         f.write('<title>Historico de Navegacao</title>\n')
@@ -156,14 +163,13 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             # Parse Ethernet
             eth_protocol, data = parse_ethernet_header(packet)
             
-            # Se não for IP, continuar
+            # Ignore non-IP packets
             if eth_protocol != 0x0800:
                 print_("red", f"Non-IP Packet Detected (EtherType: {eth_protocol:#04x}). Skipping...")
                 continue
 
             captured_packets += 1
             
-            # Parse IP
             protocol, src_ip, dst_ip, data = parse_ip_header(data)
             protocol_mapper = {6: "TCP", 17: "UDP"}
             protocol_name = protocol_mapper.get(protocol, "Unknown")
@@ -183,18 +189,18 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             elif protocol_name == "TCP":
                 src_port, dst_port, data = parse_tcp_header(data)
                 if dst_port == 80:  # HTTP
-                    url = parse_http_request(data)
-                    if url:
+                    host, url_path = parse_http_request(data)
+                    if host and url_path:
                         timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
                         hostname = dns_cache.get(dst_ip, dst_ip)
-                        entry = f'{timestamp} - {src_ip} - <a href="http://{hostname}{url}">http://{hostname}{url}</a>'
+                        address = f'http://{host}{url_path}'.replace('\r', '').replace('\n', '')
+                        entry = f'{timestamp} - {hostname} - <a href="{address}">{address}</a>'
                         history.append(entry)
             
     except KeyboardInterrupt:
         print_("yellow", "\nEncerrando...")
     finally:
         print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes.")
-        print_("green", f"Salvando historico em {output_file}")
         save_history(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
         sock.close()
 

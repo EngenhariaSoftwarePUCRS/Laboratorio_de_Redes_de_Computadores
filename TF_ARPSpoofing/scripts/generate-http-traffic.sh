@@ -7,8 +7,9 @@ fi
 # List of HTTP-only URLs
 urls=(
     "http://example.com"
-    "http://httpbin.org/get"
-    "http://neverssl.com"
+    "http://www.pucrs.br/facin/agenda/"
+    "http://globoesporte.globo.com/blogs/especial-blog/brasil-mundial-fc/post/jogo-da-paz-maradona-se-estranha-com-veron-e-deixa-o-gramado-irritado.html"
+    "http://www.gshow.globo.com/tv/noticia/2016/10/angelica-e-luciano-huck-sao-entrevistados-no-programa-do-jo.html"
 )
 
 # Loop through URLs and send requests
