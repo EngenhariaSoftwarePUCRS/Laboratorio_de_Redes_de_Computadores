@@ -37,17 +37,22 @@ class ICMP:
 def calculate_checksum(data):
     """Calculate checksum for a given data"""
     checksum = 0
-
     data_length = len(data)
-    for i in range(0, data_length, 2):
-        if i + 1 < data_length:
-            byte1 = data[i]
-            byte2 = data[i + 1]
-            checksum += (byte1 + (byte2 << 8))
-        elif i < data_length:
-            checksum += data[i]
-
+    
+    # Handle complete 16-bit blocks
+    for i in range(0, data_length - 1, 2):
+        word = (data[i] << 8) + data[i + 1]
+        checksum += word
+    
+    # Handle any remaining byte
+    if data_length % 2:
+        checksum += data[-1] << 8
+    
+    # Add carry bits
+    checksum = (checksum >> 16) + (checksum & 0xffff)
     checksum += (checksum >> 16)
+    
+    # One's complement
     checksum = ~checksum & 0xffff
 
     return checksum
@@ -159,11 +164,6 @@ class NetworkScanner:
         
         # Imprimir resultados
         print_("cyan", "\nResultados da varredura:")
-        print_("cyan", f"Rede escaneada: {self.network}")
-        print_("cyan", f"Tempo total: {(end_time - start_time):.2f} segundos")
-        print_("cyan", f"Hosts ativos: {len(self.active_hosts)}")
-        print_("cyan", f"Total de hosts na rede: {IPv4Network(self.network).num_addresses - 2}")
-        print_("cyan", "\nHosts ativos encontrados:")
         for ip, response_time in self.active_hosts:
             if response_time <= 1:
                 print_("green", f"{ip}: {response_time:.2f}ms")
@@ -171,6 +171,11 @@ class NetworkScanner:
                 print_("yellow", f"{ip}: {response_time:.2f}ms")
             else:
                 print_("red", f"{ip}: {response_time:.2f}ms")
+        print_("cyan", f"Rede escaneada: {self.network}")
+        print_("cyan", f"Tempo total: {(end_time - start_time):.2f} segundos")
+        print_("cyan", f"Hosts ativos: {len(self.active_hosts)}")
+        print_("cyan", f"Total de hosts na rede: {IPv4Network(self.network).num_addresses - 2}")
+        print_("cyan", "\nHosts ativos encontrados:")
 
 
 def main():
