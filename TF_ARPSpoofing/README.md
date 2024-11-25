@@ -95,7 +95,7 @@ The <timeout_ms> is the time in milliseconds that the program will wait for a re
 To perform the ARP Spoofing attack, you will need to access each container and run the following commands:
 To make it easier, we adopted the standard of using localhost:8080 as the `attacker`, localhost:8081 as the `gateway`/router, and localhost:8082 as the `victim`.
 
-To get the container IPs, you can run the following command:
+To get the container IPs, you can run the following command on your original environment (the one you ran the `docker compose up` command):
 
 ```bash
 $ scripts/get-container-ips.sh
@@ -150,7 +150,7 @@ $ docker compose up --build
 $ docker ps
 
 # Access the container
-$ docker exect -it {{container_id}} sh
+$ docker exec -it {{container_id}} sh
 ```
 
 ## Authors
