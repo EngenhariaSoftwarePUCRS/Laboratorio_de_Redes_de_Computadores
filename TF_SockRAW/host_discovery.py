@@ -1,57 +1,66 @@
-#!/usr/bin/python3
 import socket
 import struct
-import time
 import sys
-from ipaddress import IPv4Network
 import threading
+import time
+from ipaddress import IPv4Network
 
-# Estrutura do cabeçalho IP
+
 class IP:
+    """IP Header Structure"""
     def __init__(self, source, destination):
         self.version = 4
-        self.ihl = 5
-        self.tos = 0
-        self.tot_len = 20 + 8
-        self.id = 54321
-        self.frag_off = 0
-        self.ttl = 255
-        self.protocol = socket.IPPROTO_ICMP
-        self.check = 0
-        self.saddr = socket.inet_aton(source)
-        self.daddr = socket.inet_aton(destination)
+        self.ihl = 5 # Internet Header Length
+        self.tos = 0 # Type of Service
+        self.tot_len = 20 + 8 # IP + ICMP (kernel should fill the correct total length)
+        self.id = 54321 # Id of this packet
+        self.frag_off = 0 # Fragmentation offset
+        self.ttl = 255 # Time to live
+        self.protocol = socket.IPPROTO_ICMP # Protocol
+        self.check = 0 # Kernel will fill the correct checksum
+        self.saddr = socket.inet_aton(source) # Spoof the source IP address if you want to
+        self.daddr = socket.inet_aton(destination) # Destination IP
 
-# Estrutura do pacote ICMP
+
 class ICMP:
+    """ICMP Header Structure"""
     def __init__(self):
-        self.type = 8
+        self.type = 8 # ICMP type (8 = request, 0 = reply)
         self.code = 0
-        self.checksum = 0
+        self.checksum = 0 # Kernel will fill the correct checksum
         self.id = 12345
         self.sequence = 1
 
+
 def calculate_checksum(data):
-    s = 0
-    n = len(data)
-    for i in range(0, n, 2):
-        if i + 1 < n:
-            a = data[i]
-            b = data[i + 1]
-            s = s + (a + (b << 8))
-        elif i < n:
-            s = s + data[i]
-    s = s + (s >> 16)
-    s = ~s & 0xffff
-    return s
+    """Calculate checksum for a given data"""
+    checksum = 0
+
+    data_length = len(data)
+    for i in range(0, data_length, 2):
+        if i + 1 < data_length:
+            byte1 = data[i]
+            byte2 = data[i + 1]
+            checksum += (byte1 + (byte2 << 8))
+        elif i < data_length:
+            checksum += data[i]
+
+    checksum += (checksum >> 16)
+    checksum = ~checksum & 0xffff
+
+    return checksum
+
 
 class NetworkScanner:
-    def __init__(self, network, timeout):
+    def __init__(self, network, timeout_ms):
         self.network = network
-        self.timeout = timeout
+        # Timeout in milliseconds
+        self.timeout = timeout_ms
         self.active_hosts = []
         self.lock = threading.Lock()
 
-    def create_socket(self):
+    def create_socket(self) -> socket.socket:
+        """Creates a raw socket"""
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
             return s
@@ -59,19 +68,27 @@ class NetworkScanner:
             print(f"Socket creation error: {e}")
             sys.exit()
 
-    def create_packet(self, dst_ip):
+    def create_packet(self, dst_ip) -> tuple[bytes, bytes]:
+        """
+            Creates a packet with IP and ICMP headers
+
+            :param dst_ip: Destination IP address
+            :return: Packet with IP Header and Packet ICMP Header
+        """
         # Criar cabeçalho IP
-        ip = IP(socket.gethostbyname(socket.gethostname()), dst_ip)
+        self_ip = socket.gethostbyname(socket.gethostname())
+        ip = IP(self_ip, dst_ip)
         
         # Criar pacote ICMP
         icmp = ICMP()
-        
-        # Montar pacote
-        packet = struct.pack("!BBHHHBBH4s4s", 
+    
+        # Pack IP header
+        ip_header = struct.pack("!BBHHHBBH4s4s", 
             (ip.version << 4) + ip.ihl, ip.tos, ip.tot_len,
             ip.id, ip.frag_off, ip.ttl, ip.protocol, ip.check,
             ip.saddr, ip.daddr)
         
+        # Pack ICMP header
         icmp_packet = struct.pack("!BBHHH", 
             icmp.type, icmp.code, icmp.checksum,
             icmp.id, icmp.sequence)
@@ -84,14 +101,19 @@ class NetworkScanner:
             icmp.type, icmp.code, icmp_checksum,
             icmp.id, icmp.sequence)
         
-        return packet + icmp_packet
+        return ip_header, icmp_packet
 
-    def scan_host(self, ip):
+    def scan_host(self, ip) -> None:
+        """
+            Sends an ICMP echo request to a given IP address
+
+            :param ip: IP address to send the ICMP echo request
+        """
         sock = self.create_socket()
-        packet = self.create_packet(ip)
+        _ip_header, icmp_packet = self.create_packet(ip)
         
         start_time = time.time()
-        sock.sendto(packet, (ip, 0))
+        sock.sendto(icmp_packet, (ip, 0))
         
         try:
             sock.settimeout(self.timeout / 1000)  # Converter para segundos
@@ -105,10 +127,12 @@ class NetworkScanner:
         
         except socket.timeout:
             pass
+
         finally:
             sock.close()
 
     def scan(self):
+        """Scans the network for active hosts"""
         threads = []
         start_time = time.time()
         
@@ -141,10 +165,12 @@ class NetworkScanner:
         for ip, response_time in self.active_hosts:
             print(f"{ip}: {response_time:.2f}ms")
 
+
 def main():
     if len(sys.argv) != 3:
-        print("Uso: ./scanner.py <rede/mascara> <timeout_ms>")
-        print("Exemplo: ./scanner.py 192.168.1.0/24 1000")
+        program_name = sys.argv[0]
+        print(f"Uso: python {program_name} <rede/mascara> <timeout_ms>")
+        print(f"Exemplo: python {program_name} 192.168.15.0/24 1000")
         sys.exit(1)
 
     network = sys.argv[1]
@@ -152,6 +178,7 @@ def main():
 
     scanner = NetworkScanner(network, timeout)
     scanner.scan()
+
 
 if __name__ == "__main__":
     main()
