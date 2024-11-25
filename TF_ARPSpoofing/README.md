@@ -5,11 +5,15 @@
 - [Technical Specifications](#technical-specifications)
   - [More About Docker](#more-about-docker)
 - [How to Run](#how-to-run)
+  - [About IPs and MAC Addresses](#about-ips-and-mac-addresses)
   - [Step 1: Host Discovery](#step-1-host-discovery)
   - [Step 2: ARP Spoofing](#step-2-arp-spoofing)
+    - [Victim 1 Container](#victim-1-container)
+    - [Victim 2 Container](#victim-2-container)
     - [Attacking Container](#attacking-container)
-    - [Victim Container](#victim-container)
-    - [Gateway Container](#gateway-container)
+    - [Victim 1 Container](#victim-1-container-1)
+    - [Victim 2 Container](#victim-2-container-1)
+  - [Step 3: Traffic Monitoring](#step-3-traffic-monitoring)
 - [Cheat Sheet](#cheat-sheet)
   - [Docker Actions](#docker-actions)
 - [Authors](#authors)
@@ -66,9 +70,30 @@ $ docker compose up --build -d
 
 That's it! You should now have three instances of the application running on your machine, on ports 8080, 8081, and 8082.
 
-To access the application machines, simply go to http://localhost:8080, http://localhost:8081, and http://localhost:8082.
+### About IPs and MAC Addresses
+
+We have configured static IPs for the containers to make it easier to understand the network and not have to manually check the IPs every time. The IPs are as follows:
+The MAC addresses also don't appear to change, but they were not set manually, so maybe this column is different for you, maybe not.
+Here is a table with the IPs and MAC addresses of the containers:
+
+| Nickname  | IP Address  | MAC Address        | Container Name             |
+|-----------|-------------|--------------------|----------------------------|
+| Gateway   | 172.0.0.254 | 02:42:d1:60:f5:29  | -                          |
+| Attacker  | 172.0.0.1   | 02:42:ac:14:00:01  | tf_arpspoofing-labredes1-1 |
+| Victim 1  | 172.0.0.2   | 02:42:ac:14:00:02  | tf_arpspoofing-labredes2-1 |
+| Victim 2  | 172.0.0.3   | 02:42:ac:14:00:03  | tf_arpspoofing-labredes3-1 |
+
+To get the updated container IPs and MAC Addresses, you can run the following command on your original environment (the one you ran the `docker compose up` command):
+
+```bash
+$ scripts/get-container-ips.sh
+```
 
 To follow the next steps, you will need to access the containers and open the LXTerminal, which should be the third icon on the tray.
+To access the application machines, simply go to:
+[Attacker Machine (localhost:8080)](localhost:8080)
+[Victim Machine (localhost:8081)](localhost:8081)
+[Gateway Machine (localhost:8082)](localhost:8082)
 
 To check that everything appears to be working, you can run the following commands:
 
@@ -87,55 +112,98 @@ To check which hosts are active in the network, you can run the following comman
 $ python3 host_discovery.py <network/mask> <timeout_ms>
 ```
 
-Obs.: <network/mask> has to follow the network IP address, not the host IP address, so for example: `172.20.0.0/24` if the host IP is `172.20.0.4`.
+Obs.: <network/mask> has to follow the network IP address, not the host IP address, so for example: `172.20.0.0/24` if the host IP is `172.20.0.4`. It is important to note that the network IP address is the same for all containers, so you can use the same <network/mask> for all of them, in this case, `172.20.0.0/24`.
 The <timeout_ms> is the time in milliseconds that the program will wait for a response from the hosts.
+
+Should return something like this:
+
+![Host Discovery](./images/Step1_HostDiscovery.png)
 
 ### Step 2: ARP Spoofing
 
-To perform the ARP Spoofing attack, you will need to access each container and run the following commands:
-To make it easier, we adopted the standard of using localhost:8080 as the `attacker`, localhost:8081 as the `gateway`/router, and localhost:8082 as the `victim`.
-
-To get the container IPs, you can run the following command on your original environment (the one you ran the `docker compose up` command):
+#### Victim 1 Container
 
 ```bash
-$ scripts/get-container-ips.sh
+# Ping other victim (to generate traffic)
+$ ping 172.20.0.3 -c 3
+# Send a request to the outside through the gateway (to generate traffic)
+$ curl -so /dev/null http://example.com
+# Check the ARP table
+$ arp -n
 ```
 
-You should receive a table with the IP addresses, one for each container. Usually the end of the container IPs will be `.2`, `.3` and `.4` in a random order.
-So for example, you will receive an output like this:
+Should return something like this:
+
+![ARP Table Victim 1 Before Attack](./images/Step2_Victim1_BeforeAttack.png)
+
+#### Victim 2 Container
 
 ```bash
-ID      Address         Hostname
-2       172.20.0.2      tf_arpspoofing-labredes2-1
-3       172.20.0.3      tf_arpspoofing-labredes3-1
-1       172.20.0.4      tf_arpspoofing-labredes1-1
+# Ping other victim (to generate traffic)
+$ ping 172.20.0.2 -c 3
+# Send a request to the outside through the gateway (to generate traffic)
+$ curl -so /dev/null http://example.com
+# Check the ARP table
+$ arp -n
 ```
 
-In this case, the attacker's IP is `172.20.0.4`, the gateway's IP is `172.20.0.2`, and the victim's IP is `172.20.0.3`.
+Should return something like this:
+
+![ARP Table Victim 2 Before Attack](./images/Step2_Victim2_BeforeAttack.png)
 
 #### Attacking Container
 
+Start 3 terminals in the attacking container and run the following commands in each one:
+
 ```bash
-# Attack the victim
-$ arpspoof -i eth0 -t 172.20.0.3 172.20.0.2
-# Attack the gateway
-$ arpspoof -i eth0 -t 172.20.0.2 172.20.0.3
+# Attack victim 1 and gateway connection
+$ ./arpspoof.sh 172.20.0.2 172.20.0.254
 ```
 
-#### Victim Container
+```bash
+# Attack victim 2 and gateway connection
+$ ./arpspoof.sh 172.20.0.3 172.20.0.254
+```
 
 ```bash
-# Ping gateway (to generate traffic)
-$ ping 172.20.0.2
+# Attack victim 1 and victim 2 connection
+$ ./arpspoof.sh 172.20.0.2 172.20.0.3
+```
+
+You should these outputs:
+
+![ARP Spoofing Victim 1 --- Gateway](./images/Step2_Attacker_Victim1_Gateway.png)
+![ARP Spoofing Victim 2 --- Gateway](./images/Step2_Attacker_Victim2_Gateway.png)
+![ARP Spoofing Victim 1 --- Victim 2](./images/Step2_Attacker_Victim1_Victim2.png)
+
+#### Victim 1 Container
+
+```bash
 # Check the ARP table
 $ arp -n
 ```
 
-#### Gateway Container
+Now the ARP table should have the attacker's MAC address associated with the gateway's and the other victim's IP address, returning something like this:
+
+![ARP Table Victim 1 After Attack](./images/Step2_Victim1_AfterAttack.png)
+
+#### Victim 2 Container
 
 ```bash
 # Check the ARP table
 $ arp -n
+```
+
+Now the ARP table should have the attacker's MAC address associated with the gateway's and the other victim's IP address, returning something like this:
+
+![ARP Table Victim 2 After Attack](./images/Step2_Victim2_AfterAttack.png)
+
+### Step 3: Traffic Monitoring
+
+To monitor the traffic, you can run the following command in the attacking container:
+
+```bash
+$ python3 traffic_sniffer.py
 ```
 
 ## Cheat Sheet
@@ -151,6 +219,9 @@ $ docker ps
 
 # Access the container
 $ docker exec -it {{container_id}} sh
+
+# Stop the containers
+$ docker compose down
 ```
 
 ## Authors
