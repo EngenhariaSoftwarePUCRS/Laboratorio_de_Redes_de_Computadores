@@ -9,7 +9,7 @@ from print import print_, print_error
 
 output_file: str
 interface: str
-history: list[str] = []
+history: list[dict[str, str]] = []
 dns_cache: dict[str, str] = {}
 
 
@@ -131,10 +131,23 @@ def save_history(start_time: str):
         f.write('</header>\n')
         f.write('<body>\n')
         f.write(f'<h1>Historico de Navegacao ({start_time})</h1>\n')
-        f.write('<ul>\n')
+        f.write('<table border="1">\n')
+        f.write('<tr>\n')
+        f.write('<th>Timestamp</th>\n')
+        f.write('<th>Hostname</th>\n')
+        f.write('<th>Protocol</th>\n')
+        f.write('<th>Domain</th>\n')
+        f.write('<th>URL Path</th>\n')
+        f.write('</tr>\n')
         for entry in history:
-            f.write(f'<li>{entry}</li>\n')
-        f.write('</ul>\n')
+            f.write('<tr>\n')
+            f.write(f'<td>{entry["timestamp"]}</td>\n')
+            f.write(f'<td>{entry["hostname"]}</td>\n')
+            f.write(f'<td>{entry["protocol"]}</td>\n')
+            f.write(f'<td>{entry["domain"]}</td>\n')
+            f.write(f'<td>{entry["url_path"]}</td>\n')
+            f.write('</tr>\n')
+        f.write('</tr>\n')
         f.write('</body>\n')
         f.write('</html>\n')
 
@@ -165,14 +178,14 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             
             # Ignore non-IP packets
             if eth_protocol != 0x0800:
-                print_("red", f"Non-IP Packet Detected (EtherType: {eth_protocol:#04x}). Skipping...")
+                # print_("red", f"Non-IP Packet Detected (EtherType: {eth_protocol:#04x}). Skipping...")
                 continue
 
             captured_packets += 1
             
             protocol, src_ip, dst_ip, data = parse_ip_header(data)
-            protocol_mapper = {6: "TCP", 17: "UDP"}
-            protocol_name = protocol_mapper.get(protocol, "Unknown")
+            protocol_mapper = {1: "ICMP", 6: "TCP", 17: "UDP"}
+            protocol_name = protocol_mapper.get(protocol, f"Unknown ({protocol})")
 
             if protocol_name != "TCP":
                 print_("cyan", f'[{captured_packets}] Protocol: {protocol_name} | IP Origem: {src_ip} -> IP Destino: {dst_ip}')
@@ -188,17 +201,28 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             # Processar HTTP (TCP porta 80)
             elif protocol_name == "TCP":
                 src_port, dst_port, data = parse_tcp_header(data)
-                if dst_port == 80:  # HTTP
+                http_type = "http" if dst_port == 80 else "https" if dst_port == 443 else None
+                if http_type:
                     host, url_path = parse_http_request(data)
-                    if host and url_path:
+                    if url_path:
                         timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
                         hostname = dns_cache.get(dst_ip, dst_ip)
-                        address = f'http://{host}{url_path}'.replace('\r', '').replace('\n', '')
-                        entry = f'{timestamp} - {hostname} - <a href="{address}">{address}</a>'
+                        url = f"{http_type}://{host}"
+                        if http_type == "http":
+                            url += url_path
+                        url = url.replace('\r', '').replace('\n', '')
+                        entry = {
+                            "timestamp": timestamp,
+                            "hostname": hostname,
+                            "protocol": http_type,
+                            "domain": host,
+                            "url_path": url_path
+                        }
                         history.append(entry)
             
     except KeyboardInterrupt:
         print_("yellow", "\nEncerrando...")
+    
     finally:
         print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes.")
         save_history(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
