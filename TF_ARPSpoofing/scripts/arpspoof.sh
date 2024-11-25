@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Ensure at least two IP addresses are passed
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <FIRST_IP> <SECOND_IP>"
