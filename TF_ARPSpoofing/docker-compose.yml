@@ -1,11 +1,23 @@
 services:
+  gateway-finder:
+    image: alpine:latest
+    command: /bin/sh -c "apk add --no-cache curl && curl -s -o /dev/null http://example.com && sleep infinity"
+    networks:
+      lab:
+        ipv4_address: 172.20.0.253
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
   labredes1:
     build: .
     image: labredes
     ports:
       - "8080:8080"
     networks:
-      - lab
+      lab:
+        ipv4_address: 172.20.0.1
     privileged: true
     cap_add:
       - NET_ADMIN
@@ -18,7 +30,8 @@ services:
     ports:
       - "8081:8080"
     networks:
-      - lab
+      lab:
+        ipv4_address: 172.20.0.2
     privileged: true
     cap_add:
       - NET_ADMIN
@@ -31,7 +44,8 @@ services:
     ports:
       - "8082:8080"
     networks:
-      - lab
+      lab:
+        ipv4_address: 172.20.0.3
     privileged: true
     cap_add:
       - NET_ADMIN
@@ -41,3 +55,9 @@ services:
 networks:
   lab:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.20.0.0/24"
+          # Changing the default gateway to have prettier IPs
+          gateway: "172.20.0.254"
