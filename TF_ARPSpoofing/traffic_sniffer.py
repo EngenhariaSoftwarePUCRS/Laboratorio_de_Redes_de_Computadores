@@ -4,19 +4,21 @@ import sys
 import time
 from datetime import datetime
 
-
-interface = ""
-history = []
-dns_cache = {}
+from print import print_, print_error
 
 
-def create_socket(interface):
+interface: str
+history: list[str] = []
+dns_cache: dict[str, str] = {}
+
+
+def create_socket():
     try:
         sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
         sock.bind((interface, 0))
         return sock
     except socket.error as e:
-        print(f"Erro ao criar socket: {e}")
+        print_error(f"Erro ao criar socket: {e}")
         sys.exit(1)
 
 
@@ -24,7 +26,8 @@ def parse_ethernet_header(packet):
     eth_length = 14
     eth_header = packet[:eth_length]
     eth = struct.unpack('!6s6sH', eth_header)
-    return socket.ntohs(eth[2]), packet[eth_length:]
+
+    return eth[2], packet[eth_length:]
 
 
 def parse_ip_header(packet):
@@ -112,7 +115,7 @@ def parse_http_request(data):
         return None
 
 
-def save_history(history):
+def save_history():
     with open('historico.html', 'w') as f:
         f.write('''<html>
 <header>
@@ -130,11 +133,25 @@ def save_history(history):
 </html>''')
 
 
-def start_sniffing(history):
+def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = None):
+    """
+    Start sniffing packets on the network
+
+    :param packet_limit: Maximum number of packets to capture
+    :param time_limit: Maximum time to capture packets in seconds
+    """
     sock = create_socket()
+    start_time = time.time()
+    captured_packets = 0
     
     try:
         while True:
+            if packet_limit is not None and captured_packets >= packet_limit:
+                break
+
+            if time_limit_s is not None and time.time() - start_time >= time_limit_s:
+                break
+
             packet = sock.recvfrom(65535)[0]
             
             # Parse Ethernet
@@ -142,10 +159,15 @@ def start_sniffing(history):
             
             # Se não for IP, continuar
             if eth_protocol != 0x0800:
+                print_("red", f"Non-IP Packet Detected (EtherType: {eth_protocol:#04x}). Skipping...")
                 continue
+
+            captured_packets += 1
             
             # Parse IP
             protocol, src_ip, dst_ip, data = parse_ip_header(data)
+            protocol_mapper = {6: "TCP", 17: "UDP"}
+            print_("cyan", f'[{captured_packets}] Protocol: {protocol}({protocol_mapper.get(protocol, "Unknown")}) | IP Origem: {src_ip} -> IP Destino: {dst_ip}')
             
             # Processar DNS (UDP porta 53)
             if protocol == 17:  # UDP
@@ -168,19 +190,26 @@ def start_sniffing(history):
                         save_history()
             
     except KeyboardInterrupt:
-        print("\nCaptura finalizada")
+        print_("yellow", "\nEncerrando...")
+    finally:
+        print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes")
         sock.close()
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         program_name = sys.argv[0]
-        print(f"Uso: python {program_name} <interface>")
-        print(f"Exemplo: python3 {program_name} eth0")
+        print_("magenta", f"Uso: python {program_name} <interface> [packet_limit] [time_limit_s]")
+        print_("magenta", f"Exemplo: python3 {program_name} eth0 100 10")
         sys.exit(1)
 
-    sniffer = PacketSniffer(sys.argv[1])
-    sniffer.start_sniffing()
+    global interface
+    interface = sys.argv[1]
+
+    packet_limit = int(sys.argv[2]) if len(sys.argv) > 2 else None
+    time_limit_s = int(sys.argv[3]) if len(sys.argv) > 3 else None
+
+    start_sniffing(packet_limit, time_limit_s)
 
 
 if __name__ == "__main__":
