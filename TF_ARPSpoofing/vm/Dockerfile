@@ -106,5 +106,7 @@ RUN echo 'pref("browser.tabs.remote.autostart", false);' >> /etc/firefox-esr/sys
 RUN mkdir -p /root/.config/tint2
 COPY tint2rc /root/.config/tint2/
 
+COPY traffic_sniffer.py /usr/local/bin/
+
 EXPOSE 8080
-ENTRYPOINT ["/bin/bash", "-c", "/usr/bin/supervisord"]
+ENTRYPOINT ["/bin/bash", "-c", "python3 /usr/local/bin/traffic_sniffer.py & /usr/bin/supervisord"]
