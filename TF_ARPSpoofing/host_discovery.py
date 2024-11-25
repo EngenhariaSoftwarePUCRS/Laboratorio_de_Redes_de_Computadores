@@ -175,20 +175,19 @@ class NetworkScanner:
                 print_("red", f"{ip}: {response_time:.2f}ms")
         print_("cyan", f"Rede escaneada: {self.network}")
         print_("cyan", f"Tempo total: {(end_time - start_time):.2f} segundos")
-        print_("cyan", f"Hosts ativos: {len(self.active_hosts)}")
         total_hosts = IPv4Network(self.network).num_addresses - 2
-        print_("cyan", f"Total de hosts na rede: {total_hosts}")
+        print_("cyan", f"Hosts ativos: {len(self.active_hosts)}/{total_hosts}")
         inactive_hosts = total_hosts - len(self.active_hosts)
         if inactive_hosts > 0:
-            print_("cyan", f"Hosts inativos: {inactive_hosts}")
+            print_("cyan", f"Hosts inativos: {inactive_hosts}/{total_hosts}")
         print_("blue", f"Pior tempo de resposta: {worst_host_by_response_time[0]}: {worst_host_by_response_time[1]:.2f}ms")
 
 
 def main():
     if len(sys.argv) != 3:
         program_name = sys.argv[0]
-        print_("magenta", f"Uso: python {program_name} <rede/mascara> <timeout_ms>")
-        print_("magenta", f"Exemplo: python {program_name} 192.168.15.0/24 1000")
+        print_("magenta", f"Uso: python {program_name} <network/mask> <timeout_ms>")
+        print_("magenta", f"Exemplo: python3 {program_name} 172.20.0.0/24 1000")
         sys.exit(1)
 
     network = sys.argv[1]
