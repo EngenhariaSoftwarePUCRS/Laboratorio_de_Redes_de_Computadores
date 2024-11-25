@@ -4,7 +4,7 @@
 SUFFIX=$1
 
 # Find the container name matching the suffix
-CONTAINER=$(docker ps --format "{{.Names}}" | grep "tf_sockraw-labredes")
+CONTAINER=$(docker ps --format "{{.Names}}" | grep "tf_arpspoofing-labredes")
 
 # Check if a matching container is found
 if [ -z "$CONTAINER" ]; then
