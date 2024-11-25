@@ -7,6 +7,7 @@
 - [How to Run](#how-to-run)
 - [Cheat Sheet](#cheat-sheet)
   - [Docker Actions](#docker-actions)
+  - [Get Container IPs](#get-container-ips)
   - [Attacking Container Actions](#attacking-container-actions)
   - [Victim Container Actions](#victim-container-actions)
   - [Gateway Container Actions](#gateway-container-actions)
@@ -64,13 +65,15 @@ $ docker compose up --build -d
 
 That's it! You should now have three instances of the application running on your machine, on ports 8080, 8081, and 8082.
 
-To access the application machines, simply go to `http://localhost:8080`, `http://localhost:8081`, and `http://localhost:8082`.
+To access the application machines, simply go to http://localhost:8080, http://localhost:8081, and http://localhost:8082.
 
 To check which hosts are active in the network, you can run the following command:
 
 ```bash
-$ python host_discovery.py <rede/mascara> <timeout_ms>
+$ python host_discovery.py <network/mask> <timeout_ms>
 ```
+
+Obs.: <network/mask> has to follow the network IP address, not the host IP address.
 
 ## Cheat Sheet
 
@@ -87,24 +90,42 @@ $ docker ps
 $ docker exect -it {{container_id}} sh
 ```
 
+### Get Container IPs
+```bash
+# List all container IPs
+$ scripts/get-container-ips.sh
+```
+
+You should have received three pairs of IP addresses, one for each container. 
+Usually the end of the container IPs will be .2, .3, .4 in a random order. 
+We standardized that: 
+- The smallest IP adress, in this case .2, will be respective to the gateway.
+- The middle IP will be the attacker. 
+- The last IP will be serving as the victim. 
+If you wish to change these IPs it's completely fine, but the examples bellow will be following the guidelines above. 
+Remember to alter your IPs to those you got after running the command.
+
+Obs.: the first IP in each pair you received is the loopback (127.0.0.1).
+
+
 ### Attacking Container Actions
 
 ```bash
 # Enter into the attacking container
-$ scripts/docker-exec.sh {{attacker_container_id}}
+$ scripts/docker-exec.sh 1
 # Attack the target
-$ arpspoof -i eth0 -t {{target_ip}} {{gateway_ip}}
+$ arpspoof -i eth0 -t 172.20.0.4 172.20.0.2
 # Attack the gateway
-$ arpspoof -i eth0 -t {{gateway_ip}} {{target_ip}}
+$ arpspoof -i eth0 -t 172.20.0.2 172.20.0.4
 ```
 
 ### Victim Container Actions
 
 ```bash
 # Enter into the gateway container
-$ scripts/docker-exec.sh {{gateway_container_id}}
+$ scripts/docker-exec.sh 2
 # Ping gateway (to generate traffic)
-$ ping {{gateway_ip}}
+$ ping 172.20.0.2
 # Check the ARP table
 $ arp -n
 ```
@@ -113,7 +134,7 @@ $ arp -n
 
 ```bash
 # Enter into the gateway container
-$ scripts/docker-exec.sh {{gateway_container_id}}
+$ scripts/docker-exec.sh 3
 # Check the ARP table
 $ arp -n
 ```
