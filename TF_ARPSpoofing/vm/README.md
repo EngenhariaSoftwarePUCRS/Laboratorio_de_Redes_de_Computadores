@@ -1,3 +1,5 @@
+Original repository: https://github.com/sjohann81/labredes
+
 # Configuração do ambiente em containers para o LabRedes
 
 ## Gerenciamento de imagens

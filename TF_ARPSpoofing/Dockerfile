@@ -1,32 +1,3 @@
-# to build:
-# docker build -t labredes .
-
-# to remove:
-# docker rmi labredes --force
-
-# to launch a single instance:
-# docker run --cap-add NET_ADMIN --privileged -p 8080:8080 labredes
-# open a browser and type "localhost:8080"
-
-# to create a network of containers:
-# docker network create lab
-# docker network ls
-
-# to launch multiple instances (run each command on a separate host terminal):
-# docker run --cap-add NET_ADMIN --privileged --network lab -p 8080:8080 labredes
-# docker run --cap-add NET_ADMIN --privileged --network lab -p 8081:8080 labredes
-# docker run --cap-add NET_ADMIN --privileged --network lab -p 8082:8080 labredes
-# open a browser and type "localhost:8080", "localhost:8081" ... to access each container.
-
-# to list running containers
-# docker container ls
-
-# to execute a remote command
-# docker exec -it <container_name> <command>
-
-# to copy files from the container
-# docker cp <container_name>:/container/file/path/ /host/path/target
-
 FROM docker.io/golang:bullseye AS easy-novnc-build
 WORKDIR /src
 RUN go mod init build && \
