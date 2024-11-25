@@ -9,6 +9,8 @@ services:
     privileged: true
     cap_add:
       - NET_ADMIN
+    volumes:
+      - ./labredes1:/root/output
 
   labredes2:
     build: .
@@ -20,6 +22,8 @@ services:
     privileged: true
     cap_add:
       - NET_ADMIN
+    volumes:
+      - ./labredes2:/root/output
 
   labredes3:
     build: .
@@ -31,6 +35,8 @@ services:
     privileged: true
     cap_add:
       - NET_ADMIN
+    volumes:
+      - ./labredes3:/root/output
 
 networks:
   lab:

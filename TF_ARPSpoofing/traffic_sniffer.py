@@ -7,6 +7,7 @@ from datetime import datetime
 from print import print_, print_error
 
 
+output_file: str
 interface: str
 history: list[str] = []
 dns_cache: dict[str, str] = {}
@@ -115,22 +116,20 @@ def parse_http_request(data):
         return None
 
 
-def save_history():
-    with open('historico.html', 'w') as f:
-        f.write('''<html>
-<header>
-<title>Historico de Navegacao</title>
-</header>
-<body>
-<ul>
-''')
-        
+def save_history(start_time: str):
+    with open(output_file, 'a') as f:
+        f.write('<html>\n')
+        f.write('<header>\n')
+        f.write('<title>Historico de Navegacao</title>\n')
+        f.write('</header>\n')
+        f.write('<body>\n')
+        f.write(f'<h1>Historico de Navegacao ({start_time})</h1>\n')
+        f.write('<ul>\n')
         for entry in history:
             f.write(f'<li>{entry}</li>\n')
-        
-        f.write('''</ul>
-</body>
-</html>''')
+        f.write('</ul>\n')
+        f.write('</body>\n')
+        f.write('</html>\n')
 
 
 def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = None):
@@ -167,10 +166,13 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             # Parse IP
             protocol, src_ip, dst_ip, data = parse_ip_header(data)
             protocol_mapper = {6: "TCP", 17: "UDP"}
-            print_("cyan", f'[{captured_packets}] Protocol: {protocol}({protocol_mapper.get(protocol, "Unknown")}) | IP Origem: {src_ip} -> IP Destino: {dst_ip}')
+            protocol_name = protocol_mapper.get(protocol, "Unknown")
+
+            if protocol_name != "TCP":
+                print_("cyan", f'[{captured_packets}] Protocol: {protocol_name} | IP Origem: {src_ip} -> IP Destino: {dst_ip}')
             
             # Processar DNS (UDP porta 53)
-            if protocol == 17:  # UDP
+            if protocol_name == "UDP":
                 src_port, dst_port, data = parse_udp_header(data)
                 if dst_port == 53:  # DNS
                     domain = parse_dns_packet(data)
@@ -178,7 +180,7 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
                         dns_cache[dst_ip] = domain
             
             # Processar HTTP (TCP porta 80)
-            elif protocol == 6:  # TCP
+            elif protocol_name == "TCP":
                 src_port, dst_port, data = parse_tcp_header(data)
                 if dst_port == 80:  # HTTP
                     url = parse_http_request(data)
@@ -187,24 +189,25 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
                         hostname = dns_cache.get(dst_ip, dst_ip)
                         entry = f'{timestamp} - {src_ip} - <a href="http://{hostname}{url}">http://{hostname}{url}</a>'
                         history.append(entry)
-                        save_history()
             
     except KeyboardInterrupt:
         print_("yellow", "\nEncerrando...")
     finally:
-        print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes")
+        print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes.")
+        print_("green", f"Salvando historico em {output_file}")
+        save_history(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
         sock.close()
 
 
 def main():
     if len(sys.argv) < 2:
         program_name = sys.argv[0]
-        print_("magenta", f"Uso: python {program_name} <interface> [packet_limit] [time_limit_s]")
-        print_("magenta", f"Exemplo: python3 {program_name} eth0 100 10")
-        sys.exit(1)
+        print_("magenta", f"Uso: python {program_name} [interface=eth0] [packet_limit=None] [time_limit_s=None] [output_file=output/history.html]")
+        print_("magenta", f"Exemplo: python3 {program_name} eth0 100 10 output/history.html")
 
-    global interface
-    interface = sys.argv[1]
+    global interface, output_file
+    interface = sys.argv[1] if len(sys.argv) > 1 else "eth0"
+    output_file = sys.argv[4] if len(sys.argv) > 4 else "output/history.html"
 
     packet_limit = int(sys.argv[2]) if len(sys.argv) > 2 else None
     time_limit_s = int(sys.argv[3]) if len(sys.argv) > 3 else None
