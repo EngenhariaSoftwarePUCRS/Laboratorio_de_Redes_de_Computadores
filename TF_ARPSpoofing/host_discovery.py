@@ -189,8 +189,12 @@ def main():
         print_("magenta", f"Exemplo: python3 {program_name} 172.20.0.0/24 1000")
         sys.exit(1)
 
-    network = sys.argv[1]
-    timeout = int(sys.argv[2])
+    try:
+        network = sys.argv[1]
+        timeout = int(sys.argv[2])
+    except ValueError:
+        print_error("O timeout deve ser um número inteiro")
+        sys.exit(1)
 
     scanner = NetworkScanner(network, timeout)
     scanner.scan()
