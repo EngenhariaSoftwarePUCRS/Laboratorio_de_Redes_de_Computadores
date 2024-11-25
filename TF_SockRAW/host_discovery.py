@@ -5,6 +5,8 @@ import threading
 import time
 from ipaddress import IPv4Network
 
+from print import print_, print_error
+
 
 class IP:
     """IP Header Structure"""
@@ -65,7 +67,7 @@ class NetworkScanner:
             s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
             return s
         except socket.error as e:
-            print(f"Socket creation error: {e}")
+            print_error(f"Socket creation error: {e}")
             sys.exit()
 
     def create_packet(self, dst_ip) -> tuple[bytes, bytes]:
@@ -156,21 +158,26 @@ class NetworkScanner:
         self.active_hosts.sort(key=lambda x: socket.inet_aton(x[0]))
         
         # Imprimir resultados
-        print("\nResultados da varredura:")
-        print(f"Rede escaneada: {self.network}")
-        print(f"Tempo total: {(end_time - start_time):.2f} segundos")
-        print(f"Hosts ativos: {len(self.active_hosts)}")
-        print(f"Total de hosts na rede: {IPv4Network(self.network).num_addresses - 2}")
-        print("\nHosts ativos encontrados:")
+        print_("cyan", "\nResultados da varredura:")
+        print_("cyan", f"Rede escaneada: {self.network}")
+        print_("cyan", f"Tempo total: {(end_time - start_time):.2f} segundos")
+        print_("cyan", f"Hosts ativos: {len(self.active_hosts)}")
+        print_("cyan", f"Total de hosts na rede: {IPv4Network(self.network).num_addresses - 2}")
+        print_("cyan", "\nHosts ativos encontrados:")
         for ip, response_time in self.active_hosts:
-            print(f"{ip}: {response_time:.2f}ms")
+            if response_time <= 1:
+                print_("green", f"{ip}: {response_time:.2f}ms")
+            elif response_time <= 10:
+                print_("yellow", f"{ip}: {response_time:.2f}ms")
+            else:
+                print_("red", f"{ip}: {response_time:.2f}ms")
 
 
 def main():
     if len(sys.argv) != 3:
         program_name = sys.argv[0]
-        print(f"Uso: python {program_name} <rede/mascara> <timeout_ms>")
-        print(f"Exemplo: python {program_name} 192.168.15.0/24 1000")
+        print_("magenta", f"Uso: python {program_name} <rede/mascara> <timeout_ms>")
+        print_("magenta", f"Exemplo: python {program_name} 192.168.15.0/24 1000")
         sys.exit(1)
 
     network = sys.argv[1]
