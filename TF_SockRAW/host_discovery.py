@@ -161,6 +161,8 @@ class NetworkScanner:
         
         # Ordenar resultados por IP
         self.active_hosts.sort(key=lambda x: socket.inet_aton(x[0]))
+
+        worst_host_by_response_time = max(self.active_hosts, key=lambda x: x[1])
         
         # Imprimir resultados
         print_("cyan", "\nResultados da varredura:")
@@ -174,8 +176,12 @@ class NetworkScanner:
         print_("cyan", f"Rede escaneada: {self.network}")
         print_("cyan", f"Tempo total: {(end_time - start_time):.2f} segundos")
         print_("cyan", f"Hosts ativos: {len(self.active_hosts)}")
-        print_("cyan", f"Total de hosts na rede: {IPv4Network(self.network).num_addresses - 2}")
-        print_("cyan", "\nHosts ativos encontrados:")
+        total_hosts = IPv4Network(self.network).num_addresses - 2
+        print_("cyan", f"Total de hosts na rede: {total_hosts}")
+        inactive_hosts = total_hosts - len(self.active_hosts)
+        if inactive_hosts > 0:
+            print_("cyan", f"Hosts inativos: {inactive_hosts}")
+        print_("blue", f"Pior tempo de resposta: {worst_host_by_response_time[0]}: {worst_host_by_response_time[1]:.2f}ms")
 
 
 def main():
