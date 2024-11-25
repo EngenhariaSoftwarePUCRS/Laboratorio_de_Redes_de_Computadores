@@ -78,6 +78,7 @@ RUN mkdir -p /root/.config/tint2
 COPY vm/tint2rc /root/.config/tint2/
 
 COPY *.py /root/
+COPY scripts/generate-http-traffic.sh /root/
 
 EXPOSE 8080
 ENTRYPOINT ["/bin/bash", "-c", "/usr/bin/supervisord"]
