@@ -82,11 +82,11 @@ class NetworkScanner:
             :param dst_ip: Destination IP address
             :return: Packet with IP Header and Packet ICMP Header
         """
-        # Criar cabeçalho IP
+        # Create IP Header
         self_ip = socket.gethostbyname(socket.gethostname())
         ip = IP(self_ip, dst_ip)
         
-        # Criar pacote ICMP
+        # Create ICMP Package
         icmp = ICMP()
     
         # Pack IP header
@@ -100,10 +100,10 @@ class NetworkScanner:
             icmp.type, icmp.code, icmp.checksum,
             icmp.id, icmp.sequence)
         
-        # Calcular checksum
+        # Calculate ICMP checksum
         icmp_checksum = calculate_checksum(icmp_packet)
         
-        # Remontar pacote ICMP com checksum
+        # Pack ICMP header with checksum
         icmp_packet = struct.pack("!BBHHH",
             icmp.type, icmp.code, icmp_checksum,
             icmp.id, icmp.sequence)
@@ -123,11 +123,11 @@ class NetworkScanner:
         sock.sendto(icmp_packet, (ip, 0))
         
         try:
-            sock.settimeout(self.timeout / 1000)  # Converter para segundos
+            sock.settimeout(self.timeout / 1000)  # Convert to seconds
             data, addr = sock.recvfrom(1024)
             end_time = time.time()
             
-            response_time = (end_time - start_time) * 1000  # Converter para ms
+            response_time = (end_time - start_time) * 1000  # Convert to ms
             
             with self.lock:
                 self.active_hosts.append((ip, response_time))
@@ -143,7 +143,7 @@ class NetworkScanner:
         threads = []
         start_time = time.time()
         
-        # Criar threads para cada host
+        # Create a thread for each host in the network
         for ip in IPv4Network(self.network):
             if ip == IPv4Network(self.network).network_address or \
                ip == IPv4Network(self.network).broadcast_address:
@@ -153,18 +153,17 @@ class NetworkScanner:
             threads.append(t)
             t.start()
         
-        # Aguardar todas as threads terminarem
+        # Wait for all threads to finish
         for t in threads:
             t.join()
             
         end_time = time.time()
         
-        # Ordenar resultados por IP
+        # Sort active hosts by IP address
         self.active_hosts.sort(key=lambda x: socket.inet_aton(x[0]))
 
         worst_host_by_response_time = max(self.active_hosts, key=lambda x: x[1])
         
-        # Imprimir resultados
         print_("cyan", "\nResultados da varredura:")
         for ip, response_time in self.active_hosts:
             if response_time <= 1:
