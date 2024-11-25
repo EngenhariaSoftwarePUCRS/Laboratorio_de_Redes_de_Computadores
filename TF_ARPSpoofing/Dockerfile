@@ -96,17 +96,17 @@ RUN pip install pyqt5 && \
     pip install gns3-gui
 
 COPY --from=easy-novnc-build /bin/easy-novnc /usr/local/bin/
-COPY supervisord.conf /etc/
-COPY menu.xml /etc/xdg/openbox/
+COPY vm/supervisord.conf /etc/
+COPY vm/menu.xml /etc/xdg/openbox/
 RUN echo 'hsetroot -solid "#123456" &' >> /etc/xdg/openbox/autostart
 
 RUN mkdir -p /etc/firefox-esr
 RUN echo 'pref("browser.tabs.remote.autostart", false);' >> /etc/firefox-esr/syspref.js
 
 RUN mkdir -p /root/.config/tint2
-COPY tint2rc /root/.config/tint2/
+COPY vm/tint2rc /root/.config/tint2/
 
-COPY traffic_sniffer.py /usr/local/bin/
+COPY *.py /root/
 
 EXPOSE 8080
-ENTRYPOINT ["/bin/bash", "-c", "python3 /usr/local/bin/traffic_sniffer.py & /usr/bin/supervisord"]
+ENTRYPOINT ["/bin/bash", "-c", "/usr/bin/supervisord"]

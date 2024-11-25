@@ -1,8 +1,6 @@
 services:
   labredes1:
-    build:
-      context: vm
-      dockerfile: Dockerfile
+    build: .
     image: labredes
     ports:
       - "8080:8080"
@@ -13,9 +11,7 @@ services:
       - NET_ADMIN
 
   labredes2:
-    build:
-      context: vm
-      dockerfile: Dockerfile
+    build: .
     image: labredes
     ports:
       - "8081:8080"
@@ -26,9 +22,7 @@ services:
       - NET_ADMIN
 
   labredes3:
-    build:
-      context: vm
-      dockerfile: Dockerfile
+    build: .
     image: labredes
     ports:
       - "8082:8080"
