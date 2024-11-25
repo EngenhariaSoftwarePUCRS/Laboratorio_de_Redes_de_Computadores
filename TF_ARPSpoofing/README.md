@@ -15,6 +15,10 @@
     - [Victim 1 Container](#victim-1-container-1)
     - [Victim 2 Container](#victim-2-container-1)
   - [Step 3: Traffic Monitoring](#step-3-traffic-monitoring)
+    - [Attacker Container](#attacker-container)
+    - [Victim 1 Container](#victim-1-container-2)
+    - [Victim 2 Container](#victim-2-container-2)
+    - [Attacker Container](#attacker-container-1)
 - [Cheat Sheet](#cheat-sheet)
   - [Docker Actions](#docker-actions)
 - [Authors](#authors)
@@ -91,11 +95,12 @@ $ scripts/get-container-ips.sh
 ```
 
 ### Next Steps
+
 To follow the next steps, you will need to access the containers and open the LXTerminal, which should be the third icon on the tray.
 To access the application machines, simply go to:
 [Attacker Machine (localhost:8080)](localhost:8080)
-[Victim Machine - Victim 1 (localhost:8081)](localhost:8081)
-[Gateway Machine - Victim 2 (localhost:8082)](localhost:8082)
+[Victim 1 (localhost:8081)](localhost:8081)
+[Victim 2 (localhost:8082)](localhost:8082)
 
 To check that everything appears to be working, you can run the following commands in the containers:
 
@@ -156,7 +161,7 @@ Should return something like this:
 
 #### Attacking Container
 
-Obs.: Always check that the command line is in `:~#` instead of only `:#`.
+Obs.: Always check that the command line is in `~#` instead of only `/#`.
 Start 3 terminals in the attacking container and run the following commands in each one:
 
 ```bash
@@ -204,11 +209,32 @@ Now the ARP table should have the attacker's MAC address associated with the gat
 
 ### Step 3: Traffic Monitoring
 
+#### Attacker Container
+
 To monitor the traffic, you can run the following command in the attacking container:
 
 ```bash
 $ python3 traffic_sniffer.py
 ```
+
+#### Victim 1 Container
+
+Now let's generate some HTTP traffic on the victim 1 container:
+
+```bash
+$ ./generate-http-traffic.sh
+```
+
+#### Victim 2 Container
+
+Now let's generate some HTTPS traffic on the victim 2 container:
+For that, simply open the browser and access some websites.
+
+#### Attacker Container
+
+You should see the HTTP packets being captured by the sniffer:
+
+![Attacker Sniffer](./images/Step3_Attacker_Logs.png)
 
 ## Cheat Sheet
 
