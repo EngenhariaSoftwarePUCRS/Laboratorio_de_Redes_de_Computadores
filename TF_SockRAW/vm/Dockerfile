@@ -55,6 +55,12 @@ RUN apt-get update -y && \
 # RUN wget http://ftp.us.debian.org/debian/pool/non-free/d/dynamips/dynamips_0.2.14-1_amd64.deb
 # RUN dpkg -i dynamips_0.2.14-1_amd64.deb && \
 #    rm dynamips_0.2.14-1_amd64.deb
+
+# Install dsniff (which includes arpspoof)
+RUN apt-get update -y && \
+    apt-get install -y dsniff && \
+    rm -rf /var/lib/apt/lists
+
 RUN apt-get update -y && \
     apt-get install -y cmake git libelf-dev libpcap0.8-dev
     
