@@ -10,7 +10,7 @@ from print import print_, print_error
 output_file: str
 interface: str
 history: list[dict[str, str]] = []
-dns_cache: dict[str, tuple[str, str]] = {}
+dns_cache: dict[str, str] = {}
 
 
 def create_socket():
@@ -68,29 +68,60 @@ def parse_udp_header(packet):
     return source_port, dest_port, packet[udph_length:]
 
 
-def parse_dns_packet(data):
+def parse_dns_packet(data) -> tuple[str, str] | tuple[None, None]:
+    """
+    Parse DNS packet and return the domain and resolved IP
+
+    :param data: DNS data
+    :return: Domain and resolved IP
+    """
+
+    domain: str | None = None
+    resolved_ip: str | None = None
+
     try:
         # Simplified DNS header
         dns_header = struct.unpack('!HHHHHH', data[:12])
         query_count = dns_header[2]
+        answer_count = dns_header[3]
         
         # Skip DNS header
         offset = 12
         
         for _ in range(query_count):
             qname = []
-            while True:
+            while data[offset] != 0:
                 length = data[offset]
                 offset += 1
-                if length == 0:
-                    break
                 qname.append(data[offset:offset+length].decode())
                 offset += length
-            
             domain = '.'.join(qname)
-            return domain
+            offset += 5
+
+        for _ in range(answer_count):
+            if data[offset] & 0xC0 == 0xC0:
+                offset += 2
+            else:
+                while data[offset] != 0:
+                    length = data[offset]
+                    offset += 1 + length
+                offset += 1
+
+            rtype, rclass, ttl, rdlength = struct.unpack('!HHIH', data[offset:offset+10])
+            offset += 10
+
+            # Type A, Class IN, IPv4
+            if rtype == 1 and rclass == 1 and rdlength == 4:
+                resolved_ip = socket.inet_ntoa(data[offset:offset + rdlength])
+                offset += rdlength
+                break
+
+            offset += rdlength
+
+        return domain, resolved_ip
             
-    except Exception:
+    except Exception as e:
+        print_error(f"Erro ao processar pacote DNS ({data}): {e}")
         return None
 
 
@@ -120,22 +151,6 @@ def parse_http_request(data) -> tuple[str | None, str | None]:
         pass
 
     return host, path
-
-
-def parse_https_request(data) -> str | None:
-    """
-    Parse HTTPS request and return the host
-
-    :param data: HTTPS data
-    :return: Host
-    """
-    try:
-        https_data = data.decode('utf-8')
-        host = https_data.split(' ')[1]
-        return host
-    
-    except:
-        return None
 
 
 def save_history(start_time: str):
@@ -214,11 +229,10 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             if protocol_name == "UDP":
                 src_port, dst_port, data = parse_udp_header(data)
                 if src_port == 53 or dst_port == 53:  # DNS
-                    domain = parse_dns_packet(data)
-                    if domain and not dns_cache.get(dst_ip, None):
-                        dns_cache[dst_ip] = domain
-                    elif domain:
-                        print_("yellow", f"DNS cached: {dst_ip} -> {domain}")
+                    domain, resolved_ip = parse_dns_packet(data)
+                    if resolved_ip and domain and dst_ip not in dns_cache:
+                        dns_cache[resolved_ip] = domain
+                        print_("yellow", f"DNS cached: {resolved_ip} -> {domain}")
             
             # Processar HTTP (TCP porta 80)
             elif protocol_name == "TCP":
@@ -226,18 +240,15 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
                 http_type = "http" if dst_port == 80 else "https" if dst_port == 443 else None
                 if http_type:
                     timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
-                    hostname = dns_cache.get(src_ip, None)
+                    hostname = dns_cache.get(dst_ip, None)
                     if not hostname:
                         # Skip if no hostname is cached
                         print_("red", f"No DNS record for IP {dst_ip}")
                         continue
                     url = f"{http_type}://"
                     if http_type == "https":
-                        host = parse_https_request(data)
-                        if not host:
-                            continue
-                        url += host
-                        url_path = None
+                        url += hostname
+                        host = hostname
                     elif http_type == "http":
                         host, url_path = parse_http_request(data)
                         if not host:
@@ -245,11 +256,11 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
                         url += host
                         if url_path:
                             url += url_path
-                        url = url.replace('\r', '').replace('\n', '')
+                    url = url.replace('\r', '').replace('\n', '')
                     entry = {
                         "timestamp": timestamp,
                         "src_ip": src_ip,
-                        "host_ip": hostname,
+                        "host_ip": dst_ip,
                         "protocol": http_type,
                         "domain": host,
                         "url": url,
