@@ -10,7 +10,7 @@ from print import print_, print_error
 output_file: str
 interface: str
 history: list[dict[str, str]] = []
-dns_cache: dict[str, str] = {}
+dns_cache: dict[str, tuple[str, str]] = {}
 
 
 def create_socket():
@@ -122,6 +122,22 @@ def parse_http_request(data) -> tuple[str | None, str | None]:
     return host, path
 
 
+def parse_https_request(data) -> str | None:
+    """
+    Parse HTTPS request and return the host
+
+    :param data: HTTPS data
+    :return: Host
+    """
+    try:
+        https_data = data.decode('utf-8')
+        host = https_data.split(' ')[1]
+        return host
+    
+    except:
+        return None
+
+
 def save_history(start_time: str):
     print_("green", f"Salvando historico em {output_file}")
     with open(output_file, 'w') as f:
@@ -134,7 +150,8 @@ def save_history(start_time: str):
         f.write('<table border="1">\n')
         f.write('<tr>\n')
         f.write('<th>Timestamp</th>\n')
-        f.write('<th>Hostname</th>\n')
+        f.write('<th>Source IP</th>\n')
+        f.write('<th>Host IP</th>\n')
         f.write('<th>Protocol</th>\n')
         f.write('<th>Domain</th>\n')
         f.write('<th>URL Path</th>\n')
@@ -142,10 +159,11 @@ def save_history(start_time: str):
         for entry in history:
             f.write('<tr>\n')
             f.write(f'<td>{entry["timestamp"]}</td>\n')
-            f.write(f'<td>{entry["hostname"]}</td>\n')
+            f.write(f'<td>{entry["src_ip"]}</td>\n')
+            f.write(f'<td>{entry["host_ip"]}</td>\n')
             f.write(f'<td>{entry["protocol"]}</td>\n')
             f.write(f'<td>{entry["domain"]}</td>\n')
-            f.write(f'<td>{entry["url_path"]}</td>\n')
+            f.write(f'<td><a href="{entry["url"]}">{entry["url"]}</a></td>\n')
             f.write('</tr>\n')
         f.write('</tr>\n')
         f.write('</body>\n')
@@ -159,6 +177,8 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
     :param packet_limit: Maximum number of packets to capture
     :param time_limit: Maximum time to capture packets in seconds
     """
+    global dns_cache, history
+
     sock = create_socket()
     start_time = time.time()
     captured_packets = 0
@@ -187,38 +207,54 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
             protocol_mapper = {1: "ICMP", 6: "TCP", 17: "UDP"}
             protocol_name = protocol_mapper.get(protocol, f"Unknown ({protocol})")
 
-            if protocol_name != "TCP":
+            if protocol_name not in protocol_mapper.values():
                 print_("cyan", f'[{captured_packets}] Protocol: {protocol_name} | IP Origem: {src_ip} -> IP Destino: {dst_ip}')
             
             # Processar DNS (UDP porta 53)
             if protocol_name == "UDP":
                 src_port, dst_port, data = parse_udp_header(data)
-                if dst_port == 53:  # DNS
+                if src_port == 53 or dst_port == 53:  # DNS
                     domain = parse_dns_packet(data)
-                    if domain:
+                    if domain and not dns_cache.get(dst_ip, None):
                         dns_cache[dst_ip] = domain
+                    elif domain:
+                        print_("yellow", f"DNS cached: {dst_ip} -> {domain}")
             
             # Processar HTTP (TCP porta 80)
             elif protocol_name == "TCP":
                 src_port, dst_port, data = parse_tcp_header(data)
                 http_type = "http" if dst_port == 80 else "https" if dst_port == 443 else None
                 if http_type:
-                    host, url_path = parse_http_request(data)
-                    if url_path:
-                        timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
-                        hostname = dns_cache.get(dst_ip, dst_ip)
-                        url = f"{http_type}://{host}"
-                        if http_type == "http":
+                    timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
+                    hostname = dns_cache.get(src_ip, None)
+                    if not hostname:
+                        # Skip if no hostname is cached
+                        print_("red", f"No DNS record for IP {dst_ip}")
+                        continue
+                    url = f"{http_type}://"
+                    if http_type == "https":
+                        host = parse_https_request(data)
+                        if not host:
+                            continue
+                        url += host
+                        url_path = None
+                    elif http_type == "http":
+                        host, url_path = parse_http_request(data)
+                        if not host:
+                            continue
+                        url += host
+                        if url_path:
                             url += url_path
                         url = url.replace('\r', '').replace('\n', '')
-                        entry = {
-                            "timestamp": timestamp,
-                            "hostname": hostname,
-                            "protocol": http_type,
-                            "domain": host,
-                            "url_path": url_path
-                        }
-                        history.append(entry)
+                    entry = {
+                        "timestamp": timestamp,
+                        "src_ip": src_ip,
+                        "host_ip": hostname,
+                        "protocol": http_type,
+                        "domain": host,
+                        "url": url,
+                    }
+                    history.append(entry)
             
     except KeyboardInterrupt:
         print_("yellow", "\nEncerrando...")
@@ -226,6 +262,10 @@ def start_sniffing(packet_limit: int | None = None, time_limit_s: int | None = N
     finally:
         print_("green", f"\nEncerrado. Capturados {captured_packets} pacotes.")
         save_history(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+        # Write dns_cache to file
+        with open("output/dns_cache.txt", "w") as f:
+            for ip, domain in dns_cache.items():
+                f.write(f"{ip} {domain}\n")
         sock.close()
 
 
